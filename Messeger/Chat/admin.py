@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django import forms
-from .models import Account,AccountManager,GroupChat,PersonalChats,CommunityChat,JobsTable
+from .models import Account,AccountManager,GroupChat,PersonalChats,CommunityChat,RequestTable,GroupChatUsersList
+from .models import AiPageCarousels,OnlineStatus
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
 from django.contrib.auth import logout
@@ -20,6 +21,8 @@ from django.http import HttpResponseRedirect
 from django.contrib import messages
 from django.conf import settings
 from pathlib import Path
+import shutil
+
 from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -58,36 +61,55 @@ class UserAccountAdmin (admin.ModelAdmin):
 
     def response_add(self, request, obj, post_url_continue=None):
         # Get the created primary key of the user
-        user_pk = obj.pk
+        user_pk = str(obj.pk)
+        userid = str(obj.id)
+       
         detail = {
                 obj.email : {
                     'name' : obj.name,
                     'about' : obj.about,
-                    'id' : obj.id,
+                    'id' : userid,
                     'ProfilePic' : f'http://127.0.0.1:8000{obj.ProfilePic.url}'
                 }
             }
         now = datetime.datetime.now()
         short_date = now.strftime("%Y-%m-%d")   
-        print(detail)    
-        PersonalChats.objects.create(group_name = user_pk,RecieverId = '',SenderId = obj.id,Details = detail,DateCreated = str(short_date))
-       
+           
+        PersonalChats.objects.create(group_name = user_pk,RecieverId = '',SenderId = userid,Details = detail,DateCreated = str(short_date),name = obj.name,email = obj.email)
+        #creating a folder for each user as they are registered
+        folder_name = str(obj.email)
+        folder_path = os.path.join(settings.MEDIA_ROOT, folder_name)
+
+        # Create the folder
+        if not os.path.exists(folder_path):
+            os.makedirs(folder_path)
+           
         # Call the parent's response_add method to continue with the default behavior
+        
         return super().response_add(request, obj, post_url_continue)
 
     def save_model(self, request, obj, form, change):
-        
-        if not obj.pk:  # If this is a new object
+        is_new = not Account.objects.filter(pk=obj.pk).exists()
+        # print('Called save_model: is_new =', is_new)
+        if is_new:  # If this is a new object
+            
             obj.set_password(form.cleaned_data['password'])
+           
             super().save_model(request, obj, form, change)
     
     def delete_model(self, request, obj):
-        if obj.email == "daimac@gmail.com" or obj.email == 'kenjicladia@gmail.com':
+        if obj.email == "daimac@gmail.com" or obj.email == 'kenjicladia@gmail.com' or obj.email == 'gestuser@gmail.com':
             # Prevent deletion of the user with email "daimac@gmail.com"
             message = "You are not allowed to delete the Sole Administrator."
             self.message_user(request, message, level='ERROR')
             return False
         else:
+            #removing entire user content details stored in the server
+            folder_name = str(obj.email)
+            folder_path = os.path.join(settings.MEDIA_ROOT, folder_name)
+            # Create the folder
+            if os.path.exists(folder_path):
+                shutil.rmtree(folder_path)
             super().delete_model(request, obj)
         
     def response_delete(self, request, obj_display, obj_id):
@@ -133,43 +155,87 @@ class UserAccountAdmin (admin.ModelAdmin):
     readonly_fields=('id',)
     
 class GrouplistAdmin(admin.ModelAdmin):
-    exclude=['UsersList','ChatLogs','DateCreated']
-    readonly_fields = ['Creator']
-    list_display= ('group_name','title','DateCreated')   
+    exclude=['UsersList','ChatLogs','account_email']
+    readonly_fields = ['Creator','DateCreated','group_name']
+    list_display= ('title',)   
     def save_model(self, request, obj, form, change):
         email = request.user.email
+        name = request.user.name
+        accountref = Account.objects.get(email = email)
+        
         if not obj.pk:  # If this is a new object
             now = datetime.datetime.now()
             short_date = now.strftime("%Y-%m-%d")  
-            obj.UsersList = [email]
+            #obj.UsersList = [email]
+            obj.account_email = accountref
             obj.Creator = email
             obj.DateCreated = str(short_date)
-        
+            
+            val = f'{request.user.email}Groups{obj.pk}'
+            NewMessegerFolder = os.path.join(settings.MEDIA_ROOT,val)
+            if not os.path.exists(NewMessegerFolder):
+                os.makedirs(NewMessegerFolder)
         super().save_model(request, obj, form, change) 
+        
+        exists = GroupChatUsersList.objects.filter(name = name,email = email,group_ref = obj).exists()
+        if not exists:
+            GroupChatUsersList.objects.create(name = name,email = email,group_ref = obj)
+
+    def delete_model(self, request, obj):
+        #removing entire user content details stored in the server
+        folder_name = f'{request.user.email}Groups{obj.pk}'        
+        folder_path = os.path.join(settings.MEDIA_ROOT, folder_name)
+        # Create the folder
+        if os.path.exists(folder_path):
+            shutil.rmtree(folder_path)
+        super().delete_model(request, obj)
 
 class CommunitylistAdmin(admin.ModelAdmin):
-    exclude=['DateCreated','ChatLogs']
-    list_display= ('group_name','title','DateCreated')  
+    exclude=['DateCreated','ChatLogs','account_email','group_name']
+    readonly_fields = ['Creator']
+    list_display= ('title','DateCreated')  
     def save_model(self, request, obj, form, change):
+        email = request.user.email
+        accountref = Account.objects.get(email = email)
         if not obj.pk:  # If this is a new object
             now = datetime.datetime.now()
             short_date = now.strftime("%Y-%m-%d")  
+            obj.Creator = email
+            obj.account_email = accountref
             obj.DateCreated = str(short_date)  
             super().save_model(request, obj, form, change)
+    def delete_model(self, request, obj):
+        #removing entire user content details stored in the server
+        folder_name = f'{request.user.email}Community{obj.pk}'        
+        folder_path = os.path.join(settings.MEDIA_ROOT, folder_name)
+        # Create the folder
+        if os.path.exists(folder_path):
+            shutil.rmtree(folder_path)
+        super().delete_model(request, obj)
 
 class PersonalChatsAdmin(admin.ModelAdmin):
     exclude=['Details','ChatLogs']
-    readonly_fields= ['RecieverId','SenderId']
+    readonly_fields= ['RecieverId','SenderId','encryptionKey']
     list_display= ('group_name','SenderId','RecieverId')    
 
-class JobsTableAdmin(admin.ModelAdmin):
-    list_display = ('Details','OpenedDate','location')
+class GroupChatUsersListAdmin(admin.ModelAdmin):
+    readonly_fields= ['group_ref','name','email']
 
-    
-admin.site.register(JobsTable,JobsTableAdmin)
+
+class AiPageCarouselsAdmin(admin.ModelAdmin):
+    list_display = ('title',)
+    search_fields = ('title',)
+
+class OnlineStatusAdmin(admin.ModelAdmin):
+    pass
+
 admin.site.unregister(Group)
 admin.site.register(Account, UserAccountAdmin)
 admin.site.register(GroupChat,GrouplistAdmin)
+admin.site.register(RequestTable)
 admin.site.register(CommunityChat,CommunitylistAdmin)
 admin.site.register(PersonalChats,PersonalChatsAdmin)
+admin.site.register(AiPageCarousels,AiPageCarouselsAdmin)
+admin.site.register(OnlineStatus,OnlineStatusAdmin)
+admin.site.register(GroupChatUsersList,GroupChatUsersListAdmin)
 

@@ -12,7 +12,6 @@ const Notifier =  (props,{isAuthenticated}) =>{
     const ThemeVal = useSelector((state) => state.auth.Theme)    
 
     useLayoutEffect(() => {
-        //console.log('disiding',type)
         if(type == 'null') {
             
         }else if(type == 'INTERCEPT' && payload != 'null'){
@@ -45,7 +44,6 @@ const Notifier =  (props,{isAuthenticated}) =>{
             )
         }
     },[type, payload])
-
     useLayoutEffect(() => {
         
         if(dbEvent.notifierType != 'null' && dbEvent.notifierType != 'INTERCEPT' && dbEvent.notifierMessage != 'null' ){
@@ -53,7 +51,7 @@ const Notifier =  (props,{isAuthenticated}) =>{
             
             setType(dbEvent.notifierType)
             setPayload(dbEvent.notifierMessage)         
-            
+            //ToogleNotifier()
         }    
     },[dbEvent]) 
    

@@ -12,11 +12,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ.get('SECRET_KEY')
+import google.generativeai as genai
+
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-
-ALLOWED_HOSTS = ['127.0.0.1']
+ALLOWED_HOSTS = [os.environ.get('ALLOWED_HOSTS_LIST')] 
 #to allow Django and the Django channel to connect with one another via a message broker
 
 ASGI_APPLICATION = "Messeger.asgi.application" #Messeger.asgi will handle the ASGI
@@ -233,12 +234,13 @@ DJOSER = {
     'PASSWORD_RESET_CONFIRM_URL': 'password/reset/confirm/{uid}/{token}',
     'ACTIVATION_URL' :'activate/{uid}/{token}',
     'SEND_ACTIVATION_EMAIL': True,
+    "DELETE_USER_ON_REQUEST": False,  # Prevent automatic deletion via DELETE method
     'SERIALIZERS' : {
         'current_user' : 'Chat.serializers.UserSerializer',
         'user_create' : 'Chat.serializers.UserCreateSerializer',
         #'user_create' : None,
         'user' : 'Chat.serializers.UserCreateSerializer',
-        'user_delete' : 'djoser.serializers.UserDeleteSerializer',
+        'user_delete' : 'Chat.custom_auth.CustomUserDeleteBackend',
         #'password_reset_confirm' : 'Chat.custom_auth.CustomPasswordResetConfirmSerializer',
     }
 }
@@ -266,13 +268,14 @@ REST_FRAMEWORK = {
 
 SIMPLE_JWT = {
    'AUTH_HEADER_TYPES': ('JWT',),
-   "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
+   "ACCESS_TOKEN_LIFETIME": timedelta(hours=12),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
 } 
 
 # this is for telling djoser where the knowladge of handling hashed and salted password is
 AUTHENTICATION_BACKENDS = (
     'Chat.custom_auth.CustomAuthBackend',
+    'Chat.custom_auth.CustomUserDeleteBackend',
     'django.contrib.auth.backends.ModelBackend',
 )
 
@@ -301,4 +304,7 @@ JAZZMIN_UI_TWEAKS = {
 }
 
 
-
+## AI SETUP
+genai.configure(api_key=os.environ.get('GEMINI_API_KEY'))
+# Initialize the AI model
+AI_MODEL = genai.GenerativeModel('gemini-1.5-flash')

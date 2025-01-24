@@ -29,38 +29,11 @@ ToogleTheme,
 FindJobsReducer,
 JobHistoryReducer,
 MyJobsReducer,
+ShowLoginContainerReducer,
+PageToogleReducer,
 }from '../actions/types'
 
-var test = [
-    {
-        'name' : 'kenji',
-        'email' : 'kenjicladia@gmail.com',
-        'time' : '2024:08:23',
-        'text' : 'this is kenji\'s text',
-        'Status' : 'send'
-    },
-    {
-        'name' : 'Joe',
-        'email' : 'joejonnes@gmail.com',
-        'time' : '2024:08:23',
-        'text' : 'this is Joe\'s text',
-        'Status' : 'send'
-    },{
-        'name' : 'kenji',
-        'email' : 'kenjicladia@gmail.com',
-        'time' : '2024:08:23',
-        'text' : 'this is kenji\'s text',
-        'Status' : 'send'
-    },
-    {
-        'name' : 'Joe',
-        'email' : 'joejonnes@gmail.com',
-        'time' : '2024:08:23',
-        'text' : 'this is Joe\'s text',
-        'Status' : 'error'
-    }
-]
- 
+
 const date = new Date()
 const min = date.getMinutes()
 const initialState = {
@@ -74,11 +47,13 @@ const initialState = {
     notifierMessage : 'null',
     nofifierStatus :true,
     Theme : 'dark',
+    Page : '',
     FindJobs : [],
     MyJobs : [],
     JobHistory : [],
     MyHouses : [],
-    HouseList : []
+    HouseList : [],
+    ShowLoginContainer : true
 
 };
 //console.log(min)
@@ -147,6 +122,11 @@ export default function (state = initialState, action) {
                 user: null
 
             }
+        case ShowLoginContainerReducer:
+            return {
+                ...state,
+                ShowLoginContainer : payload
+            }
         case LOGIN_FAIL:
             localStorage.removeItem('access')
             localStorage.removeItem('refresh')
@@ -175,7 +155,7 @@ export default function (state = initialState, action) {
                 user: null,
                 Expire : null,
                 notifierType : 'SUCCESS',
-                notifierMessage : 'LOGOUT SUCCESS'
+                notifierMessage :  payload ? payload : 'FAIL'
 
             }
         case SIGNUP_SUCCESS:
@@ -263,8 +243,7 @@ export default function (state = initialState, action) {
         case INTERCEPTER:
             return {
                 ...state,
-                notifierType : state.notifierType == 'LOADING' ? 'LOADING' :'INTERCEPT',
-                notifierMessage : state.notifierMessage == 'LOADING' ? 'LOADING' :'null'
+               
             }
         case csrf_SUCCESS:
             return {
@@ -292,6 +271,11 @@ export default function (state = initialState, action) {
             return {
                 ...state,
                 MyJobs : payload
+            }
+        case PageToogleReducer:
+            return {
+                ...state,
+                Page : payload
             }
        
         default:

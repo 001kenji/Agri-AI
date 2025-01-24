@@ -23,7 +23,7 @@ application = ProtocolTypeRouter(  #configuration for channels redis
         "https": django_asgi_app,
         "websocket": OriginValidator(
             AuthMiddlewareStack(URLRouter(websocket_urlpatterns)),
-        allowed_origins=['http://localhost:5173','http://127.0.0.1:8000'],
+        allowed_origins=[os.environ.get('FRONTEND_URL') ,os.environ.get('HostPath') ],
         ),
         
     }

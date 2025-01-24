@@ -1,0 +1,49 @@
+<div id="{{ id }}" class="flex flex-col border-[1px] border-slate-600 dark:border-slate-400 justify-start h-fit w-[95%] mx-auto sm:w-[90%] max-w-[600px] lg:max-w-full lg:w-full xl:max-w-[600px] rounded-md py-2">
+    <!-- Post header container -->
+    <div class="px-4 pb-2 w-full border-b-[1px] border-slate-600 dark:border-slate-400 h-fit min-h-[60px] flex flex-row justify-around">
+        <div class="avatar my-auto">
+            <div class="w-14 h-14 rounded-full">
+                <img src="{{ postUserDetails.profilePic }}" />
+            </div>
+        </div>
+        <div class="relative flex my-auto flex-col text-left w-full ml-4 mr-auto h-fit">
+            <span class="font-semibold text-lg">{{ postUserDetails.name }}</span>
+            <p class="{% if IsPrivate and IsUserPost %}flex{% else %}hidden{% endif %} badge badge-neutral absolute inline left-[95%] bg-opacity-60 bg-slate-950 text-sm text-amber-400">private</p>
+            <small>{{ datePosted }}</small>
+            <span class="font-semibold">{{ items.title }}</span>
+        </div>
+        <div class="dropdown min-w-[40px] my-auto dropdown-end">
+            <CiCircleMore class="my-auto text-3xl hover:text-slate-100 dark:hover:text-slate-300 text-slate-800 transition-all duration-300 dark:text-slate-800" tabIndex="0" role="button" />
+        </div>
+    </div>
+    <!-- Post content -->
+    <div class="w-full h-fit bg-transparent flex flex-col justify-around">
+        <img class="{% if postUserDetails.PostFileType == 'image' %}h-fit max-h-[80vh] mask-square{% else %}hidden{% endif %}" src="http://127.0.0.1:8000/media/{{ postUserDetails.PostFileUrl }}" />
+        <video src="http://127.0.0.1:8000/media/{{ postUserDetails.PostFileUrl }}" class="{% if postUserDetails.PostFileType == 'video' %}flex{% else %}hidden{% endif %} w-full h-fit p-0 border-none min-h-[400px]" width="320" height="240" controls>
+            Your browser does not support the video tag.
+        </video>
+        <span class="{% if content != '' %}inline{% else %}hidden{% endif %} {% if postUserDetails.PostFileType != 'video' %}-translate-y-2{% else %}translate-y-0{% endif %} h-fit bg-slate-400 text-slate-950 dark:bg-slate-800 dark:text-slate-300 dark:bg-opacity-50 bg-opacity-50 p-2 rounded-sm text-center w-full">{{ content }}</span>
+    </div>
+    <!-- Bottom container -->
+    <div class="px-1 pb-2 w-full border-t-[1px] border-slate-600 dark:border-slate-400 h-fit min-h-[60px] flex flex-col justify-around">
+        <div class="w-full flex flex-row justify-around py-2">
+            <div class="w-fit flex flex-col gap-1 my-auto">
+                <BsFillHandThumbsUpFill title="Like" class="my-auto text-2xl cursor-pointer hover:text-3xl text-blue-700 transition-all duration-300" />
+                <p class="{% if likes != 'null' and likes != 0 %}flex{% else %}hidden{% endif %} m-auto text-sm cursor-pointer text-slate-200 dark:text-slate-800 hover:text-slate-800 traal duration-300 dark:hover:text-slate-200 underline underline-offset-2">{{ likes }}</p>
+            </div>
+            <FaCommentDots title="Comment" class="my-auto cursor-pointer text-2xl hover:text-slate-100 dark:hover:text-slate-100 text-slate-300 transition-all duration-300" />
+            <GoLink title="Copy link" role="button" class="tooltip my-auto text-xl hover:text-2xl hover:text-slate-100 dark:hover:text-slate-300 text-slate-300 transition-all duration-300" />
+            <SlShareAlt title="Share" role="button" class="tooltip my-auto text-xl hover:text-2xl hover:text-slate-100 dark:hover:text-slate-300 text-slate-300 transition-all duration-300" />
+        </div>
+        <!-- Comment input container -->
+        <div class="w-full flex flex-col transition-all duration-1000 rounded-2xl group/comment overflow-hidden bg-slate-300 h-fit">
+            <textarea id="PostCommentInput-{{ id }}" placeholder="Comment" class="textarea w-full max-h-[50px] h-[20px] min-h-[35px] bg-transparent focus:border-none pl-6 text-slate-950 shadow-none border-none outline-none resize-none textarea-xs"></textarea>
+            <div class="w-full transition-all flex flex-row duration-500 h-0 group-hover/comment:h-[35px] group-focus/comment:h-[35px] my-auto justify-around">
+                <BsEmojiNeutral title="Comment with emoji" class="my-auto text-xl ml-4 hover:text-yellow-500 dark:hover:text-yellow-500 text-slate-900 transition-all duration-300" role="button" />
+                <IoIosImages title="upload an image" class="my-auto text-xl ml-4 hover:text-slate-500 dark:hover:text-slate-500 text-slate-900 transition-all duration-300" role="button" />
+                <FaPaste title="paste clipboard" class="my-auto text-xl ml-4 hover:text-slate-500 dark:hover:text-slate-500 text-slate-900 transition-all duration-300" role="button" />
+                <IoSendSharp id="ClickedSendIcon-{{ id }}" title="Comment" class="my-auto text-xl ml-auto mr-4 mb-2 hover:text-sky-500 dark:hover:text-sky-500 text-slate-900 transition-all duration-300" role="button" />
+            </div>
+        </div>
+    </div>
+</div>

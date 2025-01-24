@@ -1,24 +1,90 @@
-import React, { Profiler, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import React, { Profiler, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import Navbar from "../Components/navbar";
 import '../App.css'
+import { useNavigate, useParams } from 'react-router-dom';
+import { ToastContainer, toast } from 'react-toastify';
+  import 'react-toastify/dist/ReactToastify.css';
+import { FaHandHoldingHeart } from "react-icons/fa";
 import { connect, useDispatch } from "react-redux";
-import { CheckAuthenticated, logout, load_user } from "../actions/auth";
+import { CheckAuthenticated, logout,FetchLogout, load_user } from "../actions/auth";
 import {useSelector} from 'react-redux'
+import { UploadFile} from '../actions/Chat.jsx'
+import ReactQuill from 'react-quill';
+import { CiLogout } from "react-icons/ci";
+import { IoMdAdd } from "react-icons/io";
+import { MdOutlineQuestionMark } from "react-icons/md";
+import { IoSunny } from "react-icons/io5";
+import { BsMoonStarsFill } from "react-icons/bs";
+import 'react-quill/dist/quill.snow.css';
 import { Link, Navigate } from "react-router-dom";
 import Cookies from 'js-cookie'
+import DefaultImg from '../assets/images/fallback.jpeg'
 //hashing using bcrypt for javascript only and not py
-import bcrypt from 'bcryptjs'
-
+import { TiThMenuOutline } from "react-icons/ti";
+import { MdOutlineLogout } from "react-icons/md";
+import { MdLogin } from "react-icons/md";
+import { PageToogleReducer, SelectedPageReducer, ShowLoginContainerReducer, ToogleTheme } from "../actions/types.jsx";
+import Chat from "./chat.jsx";
+import AIPage from './AI.jsx'
+import Login from "./login.jsx";
+import Notifier from "../Components/notifier.jsx";
+import ProfileJSX from './Profile.jsx'
+import PostsJSX from './posts'
 // using argon2 pashing for both javascript and py
 //const argon2 = require('argon2');
-const Home = (props, {logout, isAuthenticated}) => {
+const Home = (props, {logout,FetchLogout ,isAuthenticated,load_user,UploadFile,}) => {
+    const { page, extrainfo } = useParams();
     const dispatch = useDispatch()
     const db = useSelector((state) => state.auth.user)
-    const [homeauthorized, setHomeauthorized] = useState(false)
-    const [disableBtns, setDisableBtns] = useState(false)
+    const UserRefreshToken = useSelector((state) => state.auth.refresh)
+   
     const HmEvent  = useSelector((state) => state.auth.notifierType)
     const [getUser,setGetUser] = useState(true)
-    const ScrollBtn = useRef()
+    const TokensVal = db ? db.TokenRemaining : '0'
+    const [Upload,SetUpload] = useState({
+        file : null,
+        filename : ''
+    })
+    const navigate = useNavigate();
+    const UploaderFile = useRef(null)
+    const [Theme,SetTheme] = useState(useSelector((state)=> state.auth.Theme))
+    const ShowLoginContainer = useSelector((state)=> state.auth.ShowLoginContainer)
+    const User = useSelector((state)=> state.auth.user)
+    const Email = User != null ? User.email : 'null'
+    const UserID = User != null ? User.id : 'd5802e33-d46d-4bbb-bccb-32fe4f1446bc' // this is the id for gest user
+    const [ShowSideNav,SetShowSideNav] = useState(useSelector((state) => state.auth.Navbar))
+    var Navbarval  =  useSelector((state) => state.auth.Navbar)
+    const [Homeauthorized,setHomeauthorized] = useState(true)
+    const [Page,SetPage] = useState('AI')
+    const SelectedPage = useSelector((state) => state.ProfileReducer.SelectedPage)
+
+    const [Profile,SetProfile] = useState({
+        'edit' : false,
+        'name' : User != null ? User.name : '',
+        'email' : Email,
+        'About' : User != null ? User.about : '',
+        'ProfilePic' : User != null ? User.ProfilePic : DefaultImg,
+        'File' : null,
+        'ProfilePicName' : User != null ? User.ProfilePic : 'Profile Picture',
+        
+    })
+     
+    useLayoutEffect(() => {
+        dispatch({
+            type : PageToogleReducer,
+            payload : page
+        })
+        if(SelectedPage != null){
+            
+            OpenProfilePage(SelectedPage)
+        }else {
+            SetPage(page)
+            
+        }
+       
+        
+    },[SelectedPage])
+
     //console.log(profile)
     ///console.log(isAuthenticated)
     // if (isAuthenticated  && localStorage.getItem('access') == 'undefined') {
@@ -26,40 +92,235 @@ const Home = (props, {logout, isAuthenticated}) => {
 
     //     return <Navigate to="/login" replace />;
     // }
-
-    useLayoutEffect(() => {
-        if(HmEvent != 'LOADING'){        
-            setDisableBtns(false)
-        }else if(HmEvent == 'LOADING'){
-            setDisableBtns(true)
-           
-        }
-    },[HmEvent])
-   
     useEffect(() => {
-        if(getUser){
+        if(User != null) {
+            SetProfile((e) => {
+                return {
+                    ...e,
+                    'ProfilePic' : User.ProfilePic
+                }
+            })
+        }else {
+            SetProfile((e) => {
+                return {
+                    ...e,
+                    'ProfilePic' : `${import.meta.env.VITE_WS_API}/media/media unavailable ${Theme}.jpg`
+                }
+            })
+        }
+    },[User])
+    
+    useEffect(() => {
+        if(window.screen.width >= 640) {
+            SetShowSideNav(true)
+          }else {
+            SetShowSideNav(Navbarval)
+          }
+       
+    },[Navbarval])
+   
+ 
+    useEffect(() => {
+        if(UserRefreshToken){
             props.CheckAuthenticated();
             props.load_user();
             setHomeauthorized(true)
             setGetUser(false) 
         }
+        
+    },[UserRefreshToken])
+ 
+    function FuncToogleTheme (props) {
+        if(props){
+            SetTheme(props)
+            dispatch({
+                type : ToogleTheme,
+                payload : props
+            })
            
+        }
+    }
+    function AutoSwitchTheme (props) {
+        if(props) {
+            var val = Theme != 'light' ? 'light' : 'dark'
+            dispatch({
+                type : ToogleTheme,
+                payload : val
+            })
+            SetTheme(val)
+        }
+    }
+    window.addEventListener('resize', function() {
+    if(this.screen.width >= 640) {
+        SetShowSideNav(true)
+    }else {
+        SetShowSideNav(false)
+    }
+    })
+
+    window.addEventListener('loadeddata', function () {
+    if(screen.width >= 640) {
+        SetShowSideNav(true)
+        
+    }else {
+        SetShowSideNav(false)
+    }
+    })
+    useEffect(  () => {
+    if(screen.width >= 640) {
+        SetShowSideNav(true)
+    }else {
+        SetShowSideNav(false)
+    }
     },[])
 
+   
+   
+    // if(localStorage.getItem('access') == null /*|| db == null*/) {
+    // //console.log('not found')
+    // logout;
+    // return <Navigate to="/login" replace />;
+    // }
 
-       if(localStorage.getItem('access') == null /*|| db == null*/) {
-        //console.log('not found')
-        logout;
-        return <Navigate to="/login" replace />;
-     }
-   
-   
+    const Uploader = (props) => {
+        var File =  UploaderFile.current.files[0] ?  UploaderFile.current.files[0] : props
+        if(File ){
+            var Types = String(File.type).split('/')  
+            if(Types[0] == 'video') {
+                const width = File.videoWidth;
+                const height = File.videoHeight;
+                const aspectRatio = width / height;
+                var videoDis = document.getElementById('UploadedVideo')
+                const render = new FileReader()
+                render.onload = function (e) {
+                        videoDis.src = e.target.result
+                        SetUpload({
+                            filename : File.name,
+                            file : File
+                        })
+                    }                        
+                render.readAsDataURL(File)   
+
+            }            
+        }       
+    }
+    function ToogleLogout () {
+        var access  = localStorage.getItem('access')
+        props.logout()
+        props.FetchLogout(UserRefreshToken,access)
+    } 
+    function ShowLoginContainerFunc (propsval) {
+        if(propsval) {
+            dispatch({
+                type : ShowLoginContainerReducer,
+                payload : true
+            })
+        }
+    }
+    function OpenProfilePage (props){
+        if (props != null ) {
+            SetPage('profile')
+            navigate(`/home/profile/${props}`)
+            dispatch({
+                type : SelectedPageReducer,
+                payload : null
+            })
+        }
+    }
+    function TooglePages (props){
+        dispatch({
+            type : PageToogleReducer,
+            payload : props
+        })
+        if (props != null && props == 'profile') {
+            SetPage(props)
+            navigate(`/home/${props}/${UserID}`)
+        }if (props != null && props == 'AI') {
+            SetPage(props)
+            navigate(`/home/${props}/${UserID}`)
+        }else if (props != null && props == 'post'){
+            SetPage(props)
+            navigate(`/home/${props}/`)
+        }else if (props != null && props != 'profile'){
+            SetPage(props)
+            navigate(`/home/${props}/${UserID}`)
+        }
+    }
+ 
     return (
-         <div className=" relative">
-            <div className=" top-0 sticky w-full z-50  border-slate-900">
-                <Navbar />
-            </div>
-            <p className=" text-2xl ml-10 my-4" id="myFont" >Am home page</p>
+        <div className={`w-full drawer lg:drawer-open   md:h-screen h-full ${Theme} selection:bg-black selection:text-white selection:font-bold selection:p-1 dark:selection:bg-white dark:selection:text-black `} >
+            <input id="my-drawer-3" type="checkbox" className="drawer-toggle" />
+                <div className="drawer-content bg-transparent overflow-auto  flex flex-col">
+                    <div className="navbar z-30 px-0 bg-slate-300 dark:bg-slate-900 border-b-[1px] border-b-slate-500 dark:border-b-slate-600 transition-all duration-300 text-slate-50  w-full">
+                        <div className="flex-none pl-2 lg:hidden ">
+                            <label htmlFor="my-drawer-3" aria-label="open sidebar" className="btn btn-square btn-ghost">
+                            <TiThMenuOutline 
+                                className="inline-block h-5 w-5 text-slate-700 dark:text-slate-300 stroke-current"
+                            />
+                            
+                            </label>
+                        </div>
+                        <div id="BigProppin" className="mx-2 flex-1 text-transparent bg-clip-text bg-gradient-to-br from-lime-700 dark:from-lime-400 to-sky-400 dark:to-sky-400 w-fit max-w-fit text-lg md:text-xl lg:text-2xl px-2">Agri-AI</div>
+                        <div id="NavAnime" className=" h-[1px] w-full  fixed  mt-[64px] transition-all duration-500 opacity-50" ></div>
+                    </div>
+                    {/* Page content here */}
+                    <div className="  bg-slate-300 z-40 dark:bg-slate-900 h-full min-h-screen w-full min-w-full " >
+                         <Notifier />
+                        <div className={` ${(db == null || db == 'null') && ShowLoginContainer ? 'block' : 'hidden'} h-fit w-fit absolute  z-50 ml-3 md:ml-8 md:translate-x-[50%] md:mt-8 lg:ml-[22%]  min-h-[300px] max-h-[500px] min-w-[300px] `} ><Login /></div>
+                        {Page == 'AI' ? 
+                            <AIPage className='z-30' /> :
+                        Page == 'messeger' ? 
+                            <Chat  className='z-30' /> :
+                        Page == 'profile' ? 
+                            <ProfileJSX className='z-30' /> :
+                        Page == 'post' ? 
+                            <PostsJSX className='z-30' /> :
+                            ''}
+                    </div>
+                </div>
+                <div className="drawer-side z-50 lg:drawer-open lg:fixed ">
+                    <label htmlFor="my-drawer-3" aria-label="close sidebar" className="drawer-overlay transition-all duration-500"></label>
+                    <ul className="menu bg-slate-300 text-slate-900 dark:text-slate-100 border-r-[1px] lg:max-w-[250px]  border-r-slate-500 dark:border-r-slate-600 min-h-full dark:bg-slate-900 font-[PoppinsN]  transition-all duration-500 w-80 p-4">
+                        <label htmlFor="my-drawer-3" aria-label="open sidebar" className="btn lg:hidden btn-square btn-ghost">
+                            <IoMdAdd  
+                                className="inline-block rotate-45 transition-all duration-300 ml-auto h-5 w-full hover:text-rose-600 text-slate-900 dark:text-slate-300 stroke-current"
+                            />
+                            
+                        </label>
+                        {/* Sidebar content here */}
+                        <li onClick={()=> TooglePages('AI')} className= {` ${Page == 'AI' ? ' text-sky-600 dark:text-lime-500' : ''} hover:pl-6  transition-all hover:text-slate-50  duration-300 cursor-pointer `} ><a className="hover:bg-slate-500 cursor-pointer dark:hover:bg-slate-600" >AI</a></li>
+                        <li onClick={()=> TooglePages('market')} className={` ${Page == 'market' ? ' text-sky-600 dark:text-lime-500' : ''} hover:pl-6   transition-all hover:text-slate-50 duration-300  cursor-pointer  `}><a className="hover:bg-slate-500 cursor-pointer dark:hover:bg-slate-600" >Market</a></li>
+                        <li onClick={()=> TooglePages('messeger')} className={` ${Page == 'messeger' ? ' text-sky-600 dark:text-lime-500' : ''} hover:pl-6   transition-all hover:text-slate-50 duration-300  cursor-pointer  `}><a className="hover:bg-slate-500 cursor-pointer dark:hover:bg-slate-600" >Messeger</a></li>
+                        <li onClick={()=> TooglePages('post')} className={` ${Page == 'post' ? ' text-sky-600 dark:text-lime-500' : ''} hover:pl-6   transition-all hover:text-slate-50 duration-300  cursor-pointer  `}><a className="hover:bg-slate-500 cursor-pointer dark:hover:bg-slate-600" >Posts</a></li>
+
+                        <li onClick={()=> TooglePages('profile')} className={` ${Page == 'profile' ? ' text-sky-600 dark:text-lime-500' : ''} hover:pl-6  mt-auto flex hover:text-slate-50 flex-row justify-start align-middle transition-all duration-300  cursor-pointer  `}>
+                            <a className="hover:bg-slate-500 cursor-pointer dark:hover:bg-slate-600 w-full my-auto" >Profile
+                            <div className="avatar hover:bg-transparent px-0">
+                                <div className="mask  hover:bg-transparent mask-hexagon w-8">
+                                    <img className=" hover:bg-transparent" src={Profile.ProfilePic} />
+                                </div>
+                            </div>
+                            </a>
+                        </li>
+                        <li  className=" hover:pl-6 group transition-all hover:text-slate-50 duration-300" >
+                            <a className="hover:bg-slate-500 cursor-pointer dark:hover:bg-slate-600 overflow-hidden"  onClick={() => AutoSwitchTheme('switch')} >Theme {Theme == 'dark' ? 
+                                <BsMoonStarsFill  onClick={() => FuncToogleTheme('light')} className=" text-base animate-nonne duration-700 text-sky-300 cursor-pointer group-hover:animate-pulse" /> : 
+                                <IoSunny onClick={() => FuncToogleTheme('dark')} className=" text-lg animate-pulse duration-700 text-yellow-400 cursor-pointer group-hover:animate-spin " /> } 
+                            </a> 
+                        </li>
+                        <li onClick={ToogleLogout}  className={` ${ db != null ? 'flex' : 'hidden'} hover:pl-6 transition-all hover:text-slate-50 duration-300  cursor-pointer `} ><a className="hover:bg-slate-500 cursor-pointer dark:hover:bg-slate-600" >Logout 
+                                <MdOutlineLogout  className=" text-lg text-rose-500 opacity-100"  />    
+                            </a>
+                        </li>
+                        <li onClick={() => ShowLoginContainerFunc('show')}  className={` ${db == null ? 'flex' : 'hidden'} hover:pl-6 transition-all hover:text-slate-50 duration-300  cursor-pointer `} ><a className="hover:bg-slate-500 cursor-pointer dark:hover:bg-slate-600" >Login 
+                                <MdLogin  className=" text-lg text-amber-500 opacity-100"  />    
+                            </a>
+                        </li>
+
+                    </ul>
+                </div>
+            
+           
             
         </div>
     )
@@ -72,4 +333,4 @@ const mapStateToProps =  state => ({
     isAuthenticated:state.auth.isAuthenticated,
     
 })    
-export default connect(mapStateToProps, {CheckAuthenticated, logout,load_user})(Home)
+export default connect(mapStateToProps, {CheckAuthenticated,UploadFile,logout,FetchLogout,load_user})(Home)

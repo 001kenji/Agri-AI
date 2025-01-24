@@ -67,10 +67,9 @@ export default function (state = initialState, action) {
                 PendingRequest : payload
             }
         case RequestsListReducer:
-            var listVal = JSON.parse(payload)
             return {
                 ...state,
-                RequestList : listVal
+                RequestList : payload
             }
         case MemberListReducer:
             return {
@@ -107,7 +106,10 @@ export default function (state = initialState, action) {
                 RejectList : [],
                 BannedList : [],
                 SuggestedList : [],
-
+                NotePadlogs : [],
+                ChatList : [],
+                CommunityList : [],
+                ChatLog : [],    
             }        
         default:
             return state

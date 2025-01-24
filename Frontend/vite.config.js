@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+
 //import istanbul from 'vite-plugin-istanbul';
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -14,7 +15,7 @@ export default defineConfig({
     ],
     server : {
       cors : {
-        origin : ['http://127.0.0.1:8000'],
+        origin : [process.env.VITE_APP_API_URL],
         credentials : true
       }
     }

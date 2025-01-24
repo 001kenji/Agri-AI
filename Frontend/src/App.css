@@ -79,6 +79,10 @@ input {
   font-family: PoppinsN;
   src: url('./assets/Fonts/Poppins/Poppins-Regular.ttf');
 }
+@font-face {
+  font-family: Button;
+  src: url('./assets/Fonts/Poppins/Poppins-Medium.ttf');
+}
 
 #BigProppin {
     font-family: PoppinsSemiBold;
@@ -87,4 +91,18 @@ input {
 
 #PoppinN {
   font-family: PoppinsN;
+}
+
+/* Remove border from the quill editor */
+.ql-container {
+  border: none !important; /* Remove border */
+  box-shadow: none !important; /* Remove box shadow */
+  
+}
+/* Remove focus outline when the editor is focused */
+.ql-container:focus,
+.ql-editor:focus {
+  outline: none !important;
+  border: none !important;
+  box-shadow: none !important;
 }

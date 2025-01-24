@@ -268,6 +268,97 @@ export const RefreshRequest = (refreshtoken) => async dispatch => {
 
 }
 
+export const delete_user = (email,password) =>  async dispatch => {
+    function LoaderResponse(props) {
+        const data = JSON.parse(props)
+        //console.log('user data request is', data.is_ac)
+        
+       if(!data.success){
+            // dispatch({
+            //     type: USER_LOADED_FAIL,
+            //     payload : data.error
+            // });
+            var obj = Object.keys(data)
+            var response = obj[0]
+            // console.log(...data[response])
+            // console.log(typeof(data[response]))
+            var feeds = data[response]
+            //console.log(feeds)
+            dispatch({
+                type : LOGIN_FAIL,
+                payload : String(response+ ": "+  feeds)
+            })
+       }else {
+            dispatch ({
+                type: LOGOUT,
+                payload: data.detail
+            })
+            
+       }
+
+        
+       
+        
+       
+    }
+    //console.log(localStorage.getItem('access'), typeof(localStorage.getItem('access')))
+    if (localStorage.getItem('access')  != 'undefined'){
+            //console.log('making the loaduser request')
+        const config = {
+            headers : {
+                'Content-Type' : 'application/json',
+                'Authorization' : `JWT ${localStorage.getItem('access')}`,
+                'Accept' : 'application/json'
+            }
+        }
+        try {
+            const body = JSON.stringify({
+                "current_email": String(email),
+                "current_password": String(password)
+            });
+            var requestOptions = {
+                method: 'DELETE',
+                headers: {
+                            'Content-Type' : 'application/json',
+                            'Authorization' : `JWT ${localStorage.getItem('access')}`,
+                            'Accept' : 'application/json'
+                        },
+                body : body,
+                redirect: 'follow'
+            };
+            //const res = await axios.post(`${import.meta.env.VITE_APP_API_URL}/auth/jwt/create/`,config, body );
+            fetch(`${import.meta.env.VITE_APP_API_URL}/auth/users/me/`, requestOptions)
+            .then(response => response.text())
+            .then(result => LoaderResponse(result))
+            .catch(error => {
+                //console.error('There has been a problem with your fetch operation:', error);
+                dispatch({
+                  type: USER_LOADED_FAIL,
+                });
+            });
+           
+
+            
+        }catch(err) {
+            //console.log('error of loaduser is: ' ,err)
+            dispatch ({
+                type: USER_LOADED_FAIL
+            })
+    
+        }
+    
+    }
+    else {
+        dispatch ({
+            type: USER_LOADED_FAIL,
+            payload : 'Could not process your request'
+        })
+
+    }
+    
+
+}
+
 export const load_user = () =>  async dispatch => {
     function LoaderResponse(props) {
         const data = JSON.parse(props)
@@ -711,3 +802,28 @@ export const verify = (uid, token) => async dispatch => {
 
     }
 }
+
+export const FetchLogout = (refresh_token,access) => async dispatch =>  {
+    
+    function LoaderResponse(data){
+    //logout()
+}
+const user = {
+    'refresh_token' : refresh_token
+}
+
+var requestOptions = {
+    method: 'POST',
+    headers: {
+                'Content-Type' : 'application/json',
+                'Authorization' : `JWT ${access}`,
+                'Accept' : 'application/json'
+            },
+    body : JSON.stringify(user),
+    redirect: 'follow'
+};
+//const res = await axios.post(`${import.meta.env.VITE_APP_API_URL}/auth/jwt/create/`,config, body );
+fetch(`${import.meta.env.VITE_APP_API_URL}/app/logout/`, requestOptions)
+.then(response => response.text())
+.then(result => LoaderResponse(result))
+} 

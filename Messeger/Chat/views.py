@@ -1,5 +1,5 @@
 from django.shortcuts import render,HttpResponse,loader
-import json,os,datetime
+import json,os,datetime,requests
 from django.core.files.storage import default_storage
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
@@ -61,15 +61,8 @@ class fileUploadthrottler(UserRateThrottle):
 class csrfTokenThrottler(UserRateThrottle):
     scope = 'csrf'
 
-# Create your views here.
-@method_decorator(csrf_exempt, name='dispatch')
-class Test (APIView):
-    permission_classes = (AllowAny,)
-    throttle_classes = [Datathrottler]
-
-    def post(self,request):
-        val =  list(GroupChat.objects.all().values())   
-        return Response(str(val),status=200)
+class AiTokenThrottler(UserRateThrottle):
+    scope = 'ai'
 
 @method_decorator(csrf_exempt,name='dispatch')
 class LogoutView(APIView):
@@ -535,13 +528,6 @@ class UploadProfileDocs(APIView):
             return Response(responseval,status=status.HTTP_400_BAD_REQUEST)
 
 
-def index(request):
-
-    
-    return render(request, 'indexChat.html')
-
-    #@method_decorator(csrf_exempt,name='dispatch')
-
 @method_decorator(csrf_exempt,name='dispatch')
 class FileUploadView(APIView):
     permission_classes = (IsAuthenticated,)
@@ -563,19 +549,30 @@ class FileUploadView(APIView):
         return Response( status=status.HTTP_200_OK)
        
 
-@method_decorator(csrf_exempt, name='dispatch')
-class PostHtmlView(APIView):
-    permission_classes = (AllowAny,)
-    throttle_classes = [csrfTokenThrottler]
+# Use the ngrok URL from Colab output
+COLAB_API_URL = os.environ.get('COLAB_API_URL')
+API_KEY = os.environ.get('COLAB_API_KEY')  # Same as in Colab
 
-    def get(self, request, post_id, *args, **kwargs):
-        # Access post_id from the URL
-        post_idval = sanitize_string(post_id)
-        val = Post.objects.filter(id = post_idval).first()
-        serializeddata = PostSerializer(val,many=False)
-        postData = serializeddata.data
+@method_decorator(csrf_exempt,name='dispatch')
+class TextToImage(APIView):
+    permission_classes = (IsAuthenticated,)
+    throttle_classes = [AiTokenThrottler]
+    @circuit
+    def post(self, request):        
 
-        print(postData)
-        return render(request,'post.html',postData)
+        data = request.data
+        prompt = sanitize_string(data['prompt'])
+        try:
+            data = request.data
+            prompt = sanitize_string(data.get('prompt', {prompt}))
 
-    
+            headers = {"Authorization": f"Bearer {API_KEY}"}  # Secure API request
+            response = requests.get(COLAB_API_URL, params={"prompt": prompt}, headers=headers)
+
+            if response.status_code == 200:
+                return Response(response.content, content_type="image/png", status=status.HTTP_200_OK)
+            else:
+                return Response({"failed": "Failed to generate image"}, status=response.status_code)
+
+        except Exception as e:
+            return Response({"failed": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

@@ -48,7 +48,7 @@ class CustomLogoutView(View):
 
 
 class CustomUserDeleteBackend(UserViewSet):
-    print('\n\n\ncalled\n\n\n\n')
+    
     def destroy(self, request, *args, **kwargs):
         user = self.request.user
         print('starting',user)

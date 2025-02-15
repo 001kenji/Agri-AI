@@ -1,34 +1,25 @@
 import React, { Profiler, useEffect, useLayoutEffect, useRef, useState } from "react";
 import '../App.css'
-import { UpdateProfile,FetchUserProfile,UploadProfileFile } from "../actions/profile.jsx";
-import { FaHandHoldingHeart } from "react-icons/fa";
+import {FetchUserProfile,UploadProfileFile } from "../actions/profile.jsx";
+import dataURItoBlob from 'data-uri-to-blob';
 import { useForm } from "react-hook-form";
 import { connect, useDispatch } from "react-redux";
 import {useSelector} from 'react-redux'
-import { IoMdAdd } from "react-icons/io";
-import { UploadFile} from '../actions/Chat.jsx'
 import ReactQuill from 'react-quill';
 import "react-quill/dist/quill.snow.css";
 import { MdOutlinePrivacyTip } from "react-icons/md";
 import Lottie,{useLottieInteractivity} from "lottie-react";  // from lottieflow
 import {  toast } from 'react-toastify';
-import { CiShare2 } from "react-icons/ci";
 import 'react-quill/dist/quill.snow.css';
 import { MdOutlineSubtitles } from "react-icons/md";
 import { BsPostcardHeart } from "react-icons/bs";
 import { FaAngleDown } from "react-icons/fa6";
 import { MdOutlineAdd } from "react-icons/md";
-import { GoCopy } from "react-icons/go";
+import { GoDownload } from "react-icons/go";
 import { CiCircleMore } from "react-icons/ci";
 import { FaAngleLeft } from "react-icons/fa6";
 import { FaAngleRight } from "react-icons/fa6";
 import { IoMdSend } from "react-icons/io";
-import { FaFileArrowDown } from "react-icons/fa6";
-import { IoMdMore } from "react-icons/io";
-import MacadamiaIcon from '../assets/images/macadamia.png'
-import CarouselTestImg from '../assets/images/lost.jpg'
-import { FiCornerDownLeft } from "react-icons/fi";
-import { FiCornerDownRight } from "react-icons/fi";
 import { ChatLogReducer, LOADING_USER } from "../actions/types.jsx";
 // lottieflow animated icons 
 import ProfileTestImg from '../assets/images/fallback.jpeg'
@@ -37,7 +28,7 @@ import videoIcon from '../json/videoIcon.json'
 import { useParams } from "react-router-dom";
 // using argon2 pashing for both javascript and py
 //const argon2 = require('argon2');
-const TTT_AI = (props, {UpdateProfile,FetchUserProfile,UploadProfileFile}) => {
+const TTI_AI = (props, {FetchUserProfile,UploadProfileFile}) => {
     const {register,formState,reset,getValues,setValue,watch} = useForm({
         defaultValues : {
             'AIprompt' : '',
@@ -47,7 +38,7 @@ const TTT_AI = (props, {UpdateProfile,FetchUserProfile,UploadProfileFile}) => {
         },
         mode : 'all'
     })
-    const { extrainfo } = useParams();
+ 
     const {errors,isSubmitSuccessful,isDirty,isValid} = formState
     const dispatch = useDispatch()
     const db = useSelector((state) => state.auth.user)  
@@ -60,19 +51,17 @@ const TTT_AI = (props, {UpdateProfile,FetchUserProfile,UploadProfileFile}) => {
         'type' : null,
         'src' : null,
         'Name' : null,
-        'PostContent' : ''
+        'PostContent' : '',
+        'AIImage' : null,
+        'AIBlob' : null
     })
     const [IsLoading,SetIsLoading] = useState(false)
     const date = new Date()
     const [ProfilePostUploadingCarousel,SetProfilePostUploadingCarousel] = useState(0)
-    const HmEvent  = useSelector((state) => state.auth.notifierType)
+    const AiGeneratedImage  = useSelector((state) => state.AiReducer.AiGeneratedImage)
     const [ShowChatComponent, SetShowChatComponent] = useState(false)
     const [PostingSteps,SetPostingSteps] = useState(1)
     const [ProfilePicturePhoto,SetProfilePicturePhoto] = useState( db != null ? db.ProfilePic : ProfileTestImg)
-    const [Upload,SetUpload] = useState({
-        file : null,
-        filename : ''
-    })
     const modules = {
         toolbar: [
           // Font selection (Sans Serif)
@@ -106,59 +95,21 @@ const TTT_AI = (props, {UpdateProfile,FetchUserProfile,UploadProfileFile}) => {
           [{ 'align': 'center' }],
         ],
       };
-    const UploaderFile = useRef(null)
+    const WsDataStream = useRef(null)
     const UploadProfilePost = useRef(null)
     const ChatLogRef = useRef(null)
     const [tooltipVal,SettooltipVal]= useState(null)
-    const [RoomName,SetRoomName] = useState('null')
-    const WsDataStream = useRef(null)
-    const [Theme,SetTheme] = useState(useSelector((state)=> state.auth.Theme))
-    const [ScrollCards,SetScrollCards] = useState(0)
-    const [ReLoad,SetReLoad] = useState(false)
-    const [ScrollCardsNum,SetScrollCardsNum] = useState(0)
-    const [AiPageCarousel,SetAiPageCarousel] = useState([
-        {
-            "img" : '/media/ai/carousels/1.jpg',
-            "title": "Nutrition Tips for Muscle Growth",
-            "info": "What are some key nutrients and foods I should focus on to build muscle effectively?"
-        },
-        {
-            "img" : '/media/ai/carousels/2.jpg',
-            "title": "Effective Home Workout Routines",
-            "info": "Can you suggest a full-body workout routine I can do at home with minimal equipment?"
-        },
-        {
-            "img" : '/media/ai/carousels/3.jpg',
-            "title": "Cardio vs Strength Training",
-            "info": "What are the benefits of cardio versus strength training for overall fitness?"
-        },
-        {
-            "img" : '/media/ai/carousels/4.jpg',
-            "title": "Hydration and Performance",
-            "info": "How does staying hydrated impact my workout performance and recovery?"
-        },
-        {
-            "img" : '/media/ai/carousels/5.jpg',
-            "title": "Importance of Rest Days",
-            "info": "Why are rest days important, and how do they contribute to muscle growth and injury prevention?"
-        },
-        {
-            "img" : '/media/ai/carousels/6.jpg',
-            "title": "Mental Health and Exercise",
-            "info": "How does regular exercise improve mental health and reduce stress?"
-        },
-        {
-            "img" : '/media/ai/carousels/7.jpg',
-            "title": "Tracking Fitness Progress",
-            "info": "What are some effective methods to track my fitness progress over time?"
-        }
-      ]
-      )
-    const GlobalPage = useSelector((state)=> state.auth.Page)
+    const [Theme,SetTheme] = useState(useSelector((state)=> state.auth.Theme))  
+    const [MediaGallary,SetMediaGallary] = useState({
+            'type' : '',
+            'src' : '',
+            'show' : false,
+        })
     const [chatLogData,SetchatLogData] = useState([])
-    const [error, setError] = useState()
     const [UserPromptAi, setUserPromptAi] = useState(false)
+
     useLayoutEffect(()=> {
+        console.log('called first')
         requestWsStream('open')
         if(db != null){
             SetProfilePicturePhoto(db.ProfilePic)
@@ -169,14 +120,8 @@ const TTT_AI = (props, {UpdateProfile,FetchUserProfile,UploadProfileFile}) => {
             }
             
         }
-        ScrollCardFunc('back')
-    },[db,extrainfo])
-    useEffect(() => {
-        // if(GlobalPage != 'AI'){
-        //     SetchatLogData([])
-        //     requestWsStream('close')
-        // }
-    },[GlobalPage])
+    },[db])
+  
     useEffect(() => {
         var val = getValues('AIprompt')
         if(val != ''){
@@ -197,24 +142,72 @@ const TTT_AI = (props, {UpdateProfile,FetchUserProfile,UploadProfileFile}) => {
             
         }
     },[chatLogData.length])
-    const MapCarousels = AiPageCarousel.map((items,i) => {
-       
-        
-        return (
-            <div onClick={()=> FuncToogleChats('openChat',items.info)} key={i} id={`agri-ai-infocards-${i}`}  className= {`card cursor-pointer hover:shadow-lime-500 hover:shadow-md card-compact transition-all duration-300 bg-base-100 w-full ${i == ScrollCardsNum ? 'md:min-w-[350px] scale-1 z-30 opacity-100' : i < ScrollCardsNum ? 'opacity-70 scale-[0.8] md:translate-x-20 md:min-w-[350px] z-20 ' : 'scale-[0.8] z-20 md:-translate-x-20 opacity-70  md:min-w-[350px]'}  min-w-full rounded-sm shadow-xl `}>
-                <figure className=" rounded-sm min-h-[200px] max-h-[200px] " >
-                    <img
-                    className="  "
-                    src={`${import.meta.env.VITE_WS_API}${items.img}`}
-                    alt="ideas" />
-                </figure>
-                <div className="card-body font-sans rounded-sm">
-                    <h2 className="card-title  ">{items.title}</h2>
-                    <p>{items.info}</p>
-                </div>
-            </div>
-        )
-    })
+
+    function ShowToast(type,message){
+        if(type != null && message != null){
+            toast(message,{
+                type : type,
+                theme : Theme,
+                position : 'top-right'
+            })
+        }
+    }
+    const requestWsStream = (msg = null,body = null) => {    
+           
+            if(msg =='open'){
+                
+                if(WsDataStream.current != null ){
+                    WsDataStream.current.close(1000,'Opening another socket for less ws jam')
+    
+                }
+                WsDataStream.current =  new WebSocket(`ws:/${import.meta.env.VITE_WS_API}/ws/ai/${UserEmail}/`);
+    
+            }
+             if(msg == 'close'){
+                
+                if(WsDataStream.current != null ){
+                    WsDataStream.current.close(1000,'usefull eminent')
+    
+                }
+            }
+            
+            WsDataStream.current.onmessage = function (e) {
+              var data = JSON.parse(e.data)
+                 if(data.type == 'RequestTextToImageAI') {
+                    var val = data.message
+                    if (val['type'] == 'success') {
+                        var prev = chatLogData
+                        prev.push(val['result']) 
+                        SetchatLogData(prev) 
+                        SetIsLoading(false)
+                        // process the image                        
+                    }else {
+                        SetIsLoading(false)
+                        ShowToast(val['type'],val['result'])
+                    }
+                    
+                }
+            };
+            WsDataStream.current.onopen = (e) => {
+                // websocket is opened
+            }
+            WsDataStream.current.onclose = function (e) {
+              //ShowToast('warning','Connection Closed, check your internet connection')
+            }
+            if(WsDataStream.current.readyState === WsDataStream.current.OPEN){
+                if(msg == 'RequestTextToImageAI') {
+                    
+                    WsDataStream.current.send(
+                        JSON.stringify({
+                            'message' : 'RequestTextToImageAI',
+                            'Email' : UserEmail,
+                            'prompt' : body
+                        })
+                    )
+                }                
+            }            
+    }
+
     function StepsFunc(propval) {
         if(propval == 'next'){
             if(PostingSteps == 1){
@@ -257,7 +250,9 @@ const TTT_AI = (props, {UpdateProfile,FetchUserProfile,UploadProfileFile}) => {
                     'type' : null,
                     'src' : null,
                     'Name' : null,
-                    'PostContent' : ''
+                    'PostContent' : '',
+                    'AIBlob' : null,
+                    'AIImage' : null
                 })
             }else if (UserEmail == 'gestuser@gmail.com'){
                 toast('SignUp to make a post',{
@@ -277,12 +272,14 @@ const TTT_AI = (props, {UpdateProfile,FetchUserProfile,UploadProfileFile}) => {
             }
         }
     }
-    function TriggerPostContainer(show,messege){
+    function TriggerPostContainer(show,messege,url,blob){
         if(show == true) {
             SetProfilePostUpload((e) => {
                 return  {
                     ...e,
-                    'PostContent' : messege
+                    'PostContent' : messege,
+                    'AIImage' : url,
+                    'AIBlob' : blob
                 }
             })
             SetIsPosting(true)
@@ -292,55 +289,7 @@ const TTT_AI = (props, {UpdateProfile,FetchUserProfile,UploadProfileFile}) => {
             SetIsPosting(false)
         }
     }
-    function ScrollCardFunc (props){
-        if(props == 'back'){
-            var i = ScrollCardsNum == 0 ? 0 : ScrollCardsNum - 1
-            var name = `agri-ai-infocards-${i}`
-            var cardSelected = document.getElementById(name)
-            
-            var position = cardSelected ? cardSelected.offsetLeft : 0
-            SetScrollCardsNum(i)
-            if(window.innerWidth < '768'){
-                SetScrollCards(`-${(i * 100)}%`)
-                
-            }else if (window.innerWidth >= '768') {
-                var x = position - 230
-                if(x <= 0){
-                    x = 270
-                    SetScrollCards(`${x}px`)
-                }
-                else {
-                    SetScrollCards(`-${x}px`)
-                }
-                
-            }
-        }else if (props == 'next'){
-            var i = ScrollCardsNum == (AiPageCarousel.length -1) ? (AiPageCarousel.length -1) : ScrollCardsNum + 1
-            var name = `agri-ai-infocards-${i}`
-            var cardSelected = document.getElementById(name)
-            
-            var position = cardSelected ? cardSelected.offsetLeft : 0
-            SetScrollCardsNum(i)
-            if(window.innerWidth < '768'){
-                SetScrollCards(`-${(i * 100)}%`)
-                
-            }else if (window.innerWidth >= '768') {
-                var x = position - 230
-                if(x <= 0){
-                    x = 270
-                    SetScrollCards(`${x}px`)
-                }
-                else {
-                    SetScrollCards(`-${x}px`)
-                }
-                
-            }
-        }
-        
-    }
-    window.addEventListener('resize', () => {
-        ScrollCardFunc('back')
-    })
+   
     function ClickProfilePostInputTag(props) {
         if(props == 'image') {
             // document.getElementById('CoverPhotoInput').click()
@@ -351,6 +300,21 @@ const TTT_AI = (props, {UpdateProfile,FetchUserProfile,UploadProfileFile}) => {
             UploadProfilePost.current.accept = 'video/*'
             UploadProfilePost.current.click()
         }                
+    }
+    const ToogleProfilePostUploadAI = () =>{
+        console.log('ca')
+        var url = ProfilePostUpload.AIImage
+        var blob = ProfilePostUpload.AIBlob
+        SetProfilePostUpload((val) => {
+            return {
+                ...val,
+                'file' : blob,
+                'src' : url,
+                'type' : 'image',
+                'Name' : 'ai_generated_image.png'
+            }
+        }) 
+        
     }
     const ToogleProfilePostUpload = (val) => {
        
@@ -399,41 +363,22 @@ const TTT_AI = (props, {UpdateProfile,FetchUserProfile,UploadProfileFile}) => {
                                         
                 }
                 render.readAsDataURL(File) 
-            }
-
-                   
+            }                   
         }
 
     }
-    function SendPrompt (messegeval) {
-        if(messegeval){
-            var message = messegeval
-            setUserPromptAi(false)
-            var prev = chatLogData
-            var val = {
-                text: message,
-                email: UserEmail,
-                img : ProfilePicturePhoto,
-            }
-            prev.push(val)
-            SetchatLogData(prev)
-            SetShowChatComponent(true)
-            SetIsLoading(true)
-            
-            var Log = ChatLogRef.current
-            Log.scrollTo({
-                'top' : Log.scrollHeight ,
-                'behavior' : 'smooth',
-            })
-            setValue('AIprompt','')
-            requestWsStream('RequestAIResponse',message)
-        }else {
+    function SendPrompt () {
+      
+       if(UserEmail == 'gestuser@gmail.com'){
+            ShowToast('warning','Login to use this AI')
+       }else {
             var message = getValues('AIprompt')
-            setUserPromptAi(false)
+            //setUserPromptAi(false)
             var prev = chatLogData
             var val = {
                 text: message,
                 email: UserEmail,
+                ImageBlob : null,
                 img : ProfilePicturePhoto,
             }
             prev.push(val)
@@ -447,115 +392,16 @@ const TTT_AI = (props, {UpdateProfile,FetchUserProfile,UploadProfileFile}) => {
                 'behavior' : 'smooth',
             })
             setValue('AIprompt','')
-            requestWsStream('RequestAIResponse',message)
-        }
-        
+            // call fetc function
+            requestWsStream('RequestTextToImageAI',message)
+            
+       }
     }
-   
-    function CopyChat(props,i) {
-        if(props){
 
-            navigator.clipboard.writeText(props).then(() => {
-            }).catch(err => {
-                //console.error('Error:', err);
-            });
-            SettooltipVal(i)
-            setTimeout(() => {
-                SettooltipVal(null)
-            }, 2000);
-        }else {
-            return false   
-        }
-        
-    }
-    const requestWsStream = (msg = null,body = null,continuetion = false,continuetionId = null) => {    
-       
-        if(msg =='open'){
-            
-            if(WsDataStream.current != null ){
-                WsDataStream.current.close(1000,'Opening another socket for less ws jam')
-
-            }
-            WsDataStream.current =  new WebSocket(`ws:/${import.meta.env.VITE_WS_API}/ws/ai/${UserEmail}/`);
-
-        }
-         if(msg == 'close'){
-            
-            if(WsDataStream.current != null ){
-                WsDataStream.current.close(1000,'usefull eminent')
-
-            }
-        }
-        
-        WsDataStream.current.onmessage = function (e) {
-          var data = JSON.parse(e.data)
-             if(data.type == 'RequestAIResponse') {
-                var val = data.message
-                if (val['type'] == 'success') {
-                    var prev = chatLogData
-                    prev.push(val['result']) 
-                    SetchatLogData(prev) 
-                    SetIsLoading(false)
-                    //SetReLoad((e) => !e)
-                    
-                }else {
-                    toast(val['result'], {
-                        type: val['type'],
-                        theme: Theme,
-                        position: 'top-right',
-                    })
-                }
-                
-            }else if(data.type == 'RequestAICarousels') {
-                var val = data.message
-                if (val['type'] == 'success') {
-                    SetAiPageCarousel(val.list)
-                    
-                }else {
-                    //pass
-                }
-                
-            }
-        };
-        WsDataStream.current.onopen = (e) => {
-            // websocket is opened
-            requestWsStream('RequestAICarousels','null')
-            
-        }
-        WsDataStream.current.onclose = function (e) {
-          //console.log('closing due to :',e)
-        //   toast('Connection Closed', {
-        //       type: 'error',
-        //       theme: Theme,
-        //       position: 'top-right',
-        //   })
-          
-        }
-        if(WsDataStream.current.readyState === WsDataStream.current.OPEN){
-            if(msg == 'RequestAIResponse') {
-                
-                WsDataStream.current.send(
-                    JSON.stringify({
-                        'message' : 'RequestAIResponse',
-                        'email' : UserEmail,
-                        'prompt' : body
-                    })
-                )
-            }else if(msg == 'RequestAICarousels') {
-                
-                WsDataStream.current.send(
-                    JSON.stringify({
-                        'message' : 'RequestAICarousels',
-                        'UserEmail' : UserEmail,
-                    })
-                )
-            }
-            
-        }
-        
-    }
     const MapChatMesseger = chatLogData.map((items,i) => {
-       
+        const imageurl =items.ImageBlob != '' && items.ImageBlob  != null ? `data:image/png;base64,${items.ImageBlob }` : '' 
+        const blob = items.ImageBlob != '' && items.ImageBlob  != null ? dataURItoBlob(`data:image/png;base64,${items.ImageBlob }`) : '' 
+        const uploadurl = items.ImageBlob != '' && items.ImageBlob  != null ? URL.createObjectURL(blob) : '' 
         return (
             <div  key={i} className={`dropdown bg-transparent group relative flex px-2 min-w-[150px] max-w-[95%] bg-opacity-90 w-fit my-1 mx-2 ${items.email != 'AI' ? 'chat chat-end flex-col md:flex-row-reverse rounded-l-none  sm:dropdown-left float-right ml-auto' : 'chat chat-start flex-col sm:dropdown-right  mr-auto '}  gap-1`}>
                 <div className= {`avatar md:mb-auto `}>
@@ -563,72 +409,51 @@ const TTT_AI = (props, {UpdateProfile,FetchUserProfile,UploadProfileFile}) => {
                         <img src={items.img} />
                     </div>
                 </div>
-                <div className={`chat-bubble min-w-fit max-w-full  shadow-md w-[200px] ${items.email != UserEmail ? ' flex-col shadow-transparent bg-transparent px-0  ' : 'p-2 bg-transparent dark:shadow-green-950 shadow-slate-200  flex-col'}text-slate-100 dark:text-slate-900 gap-2 w-full flex rounded-md `}>
-                    {/* <blockquote className={` max-w-[95%] md:max-w-[90%] w-fit min-w-fit lg:max-w-[95%] break-word ${items.email != UserEmail ? ' text-slate-200 sm:max-w-[550px]' : 'sm:max-w-[500px] '} text-slate-900 dark:text-slate-200 font-mono text-sm `} > 
-                        {items.text } 
-                    </blockquote>  */}
-                    <ReactQuill
-                        className={` max-w-[95%] md:max-w-[90%] w-fit min-w-fit lg:max-w-[95%] break-word ${items.email != UserEmail ? ' text-slate-200 sm:max-w-[550px]' : 'sm:max-w-[500px] '} text-slate-900 dark:text-slate-200 font-mono text-sm md:text-lg `}
-                        value={items.text} // HTML content rendered here
-                        readOnly={true}
-                        modules={{ toolbar: false }} // Removes toolbar
-                        theme="snow"
-                    />
+                <div className={`chat-bubble min-w-fit max-w-full  shadow-md w-[200px] ${items.email != UserEmail ? ' flex-col shadow-transparent bg-transparent px-0  ' : 'p-2 bg-transparent dark:shadow-slate-800 shadow-slate-400  flex-col'}text-slate-100 dark:text-slate-900 gap-2 w-full flex rounded-md `}>
+                     <ReactQuill
+                            className={` max-w-[95%] md:max-w-[90%] w-fit min-w-fit lg:max-w-[95%] break-word ${items.email == UserEmail ? 'sm:max-w-[500px] ' : ' hidden'} text-slate-900 dark:text-slate-200 font-mono text-sm md:text-lg `}
+                            value={items.text} // HTML content rendered here
+                            readOnly={true}
+                            modules={{ toolbar: false }} // Removes toolbar
+                            theme="snow"
+                        />
+                        <img id={`Generated_TTI_ai_${i}`}    
+                            onClick={()=>OpenImage(`data:image/png;base64,${items.ImageBlob }`,'image')}
+                            className={` cursor-pointer  ${items.email == 'AI' ? 'flex' : ' hidden'} w-fit  mask mask-square rounded-md max-w-[90%] md:max-w-[70%] lg:max-w-[50%] `}
+                            src={imageurl} />
+                                  
                 </div> 
-                <div className={` w-fit mr-auto ${items.email != UserEmail ? 'flex' : 'hidden'} transition-all duration-200 text-lg flex-row gap-2 ml-4 invisible group-hover:visible flex-wrap max-w-xs`} >
-                        <button data-tip='Copied' className={` ${tooltipVal == i ? 'tooltip tooltip-top tooltip-open' : ''} `} >
-                            <GoCopy onClick={() => CopyChat(items.text,i)} className=" dark:text-slate-400 text-slate-600 hover:text-slate-800 dark:hover:text-slate-200 transition-all duration-200 cursor-pointer " />
+                <div className={` w-fit mr-auto ${items.email == 'AI' ? 'flex' : 'hidden'} transition-all duration-200 text-lg flex-row gap-2 ml-4 visible flex-wrap max-w-xs`} >
+                        <button onClick={() => DownloadAiImageFunc(`data:image/png;base64,${items.ImageBlob }`)} data-tip='Download' className={` tooltip tooltip-top `} >
+                            <GoDownload  className=" dark:text-slate-400 text-slate-600 hover:text-slate-800 dark:hover:text-slate-200 transition-all duration-200 cursor-pointer " />
                         </button>
                         <button data-tip='Post messege' className=" tooltip tooltip-top" >
-                            <BsPostcardHeart onClick={() => TriggerPostContainer(true,items.text)} className=" dark:text-slate-400 text-slate-600 hover:text-slate-800 dark:hover:text-slate-200 transition-all duration-200 cursor-pointer " />
+                            <BsPostcardHeart onClick={() => TriggerPostContainer(true,items.text,uploadurl,blob)} className=" dark:text-slate-400 text-slate-600 hover:text-slate-800 dark:hover:text-slate-200 transition-all duration-200 cursor-pointer " />
                         </button>
                 </div>  
             </div>
         )
     })
     function FuncToogleChats(props,data= null){
-        if(props == 'openChat'){
-           
-            SendPrompt(data)
-        }else if (props == 'NewChat') {
-            var val = {
-                text:`Hi ${UserName } 😊 What's on your mind today?`,
-                email:"AI",
-                img : `${import.meta.env.VITE_APP_API_URL}/media/AI.webp`
-            }
-            SetchatLogData([val])
-            SetShowChatComponent(true)
-        }else if (props == 'CloseChat') {
+     if (props == 'CloseChat') {
             SetchatLogData([])
             SetShowChatComponent(false)
         }
     }
-    function DownloadFunc (props) {
-        if(props){
-            const url = `${import.meta.env.VITE_WS_API}/media/${props}`
-            const a = document.createElement('a');
-            a.href = props;
-            a.download =  props;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(props);
-            toast('Successfully Downloaded', {
-                type: 'success',
-                theme: Theme,
-                position: 'top-right'
-            })
+    function DownloadAiImageFunc (base64Image) {
+        if(base64Image != null){            
+            const blob = dataURItoBlob(base64Image);
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = "generated_image.png";  // File name
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            ShowToast('success','Successfully Downloaded')
         }
     }
-    const OpenImage = (props) => {
-
-        window.open(`${import.meta.env.VITE_WS_API}/media/${props}`,'_blank')
-    }
-
-    const OpenImagePrivate = (props) => {
-        window.open(`${props}`,'_blank')
-    }
-   
+  
     const PostContentChange = (value) => {
         SetProfilePostUpload((e) => {
             return  {
@@ -644,10 +469,33 @@ const TTT_AI = (props, {UpdateProfile,FetchUserProfile,UploadProfileFile}) => {
             SetProfilePostUploadingCarousel((e) => e != 1 ? e + 1  : 1)
         }
     }
-
+    const OpenImage = (src,type) => {
+        if(src != null) {
+            SetMediaGallary((e) => {
+                return {
+                    ...e,
+                    'show' : true,
+                    'src' : src,
+                    'type' : type
+                }
+            })
+        }
+        
+    }
+    function CloseMediaGallary (props) {
+        if(props != null){
+            SetMediaGallary((e) => {
+                return {
+                    'src' : '',
+                    'show' : false,
+                    'type' : ''
+                }
+            })
+        }
+    }
     return (
         <div className={` h-full w-full overflow-y-auto sticky top-0 min-w-full max-w-[100%] flex flex-col justify-between  `} >
-             {/* Post section */}
+            {/* Post section */}
             <div className=  {` ${IsPosting ?  'flex flex-col lg:flex-row' : 'hidden'} absolute bg-slate-300 dark:bg-slate-800 dark:bg-opacity-90 bg-opacity-90 z-50 top-0 md:mt-4 gap-2 h-fit justify-start overflow-y-auto min-h-fit  w-[100%] mx-auto px-2 `} >
                 {/* posting container */}
                 <div className={` ${IsPosting ? 'flex flex-col' : 'hidden'} text-slate-800 w-[90%] my-4 rounded-md min-h-[350px] max-w-[600px] mx-auto h-fit border-[1px] border-slate-600 bg-slate-400 dark:bg-slate-500 dark:border-slate-400 `} >
@@ -685,16 +533,26 @@ const TTT_AI = (props, {UpdateProfile,FetchUserProfile,UploadProfileFile}) => {
                     {/* third step, uploading image or video, setting post privacy */}
                     <div className={`  my-auto ${PostingSteps == 3 ? 'flex flex-col' : 'hidden'} p-4 `} >
                         <label className=" font-semibold dark:text-slate-300 text-slate-700  text-sm" htmlFor="postTitle">Post Files</label>
-                        <div className=" w-full flex flex-row justify-around flex-nowrap" >
+                        <div className=" w-full flex flex-col gap-2 justify-around flex-nowrap" >
                             <input ref={UploadProfilePost} onChange={ToogleProfilePostUpload} className=" hidden" accept="image/*" type="file" />
-                            <button className=" w-fit flex flex-col gap-3">
-                                <Lottie  onClick={()=>ClickProfilePostInputTag('image')} data-tip="upload image" className=" tooltip h-8 mx-auto cursor-pointer hover:h-10 transition-all duration-300  " animationData={ImageIcon} loop={true} />
-                                <p className=" text-slate-200 mx-auto">upload image</p>
-                            </button>
-                            <button className=" w-fit flex flex-col gap-3">
-                                <Lottie onClick={()=>ClickProfilePostInputTag('video')} data-tip="upload video" className=" tooltip h-8 cursor-pointer mx-auto hover:h-10 transition-all duration-300  " animationData={videoIcon} loop={true} />
-                                <p className=" text-slate-200 mx-auto">upload video</p>
-                            </button>
+                            <div className="flex flex-row justify-between w-full min-w-full" >
+                                <button className=" w-fit flex flex-col gap-3">
+                                    <Lottie  onClick={()=>ClickProfilePostInputTag('image')} data-tip="upload image" className=" tooltip h-8 mx-auto cursor-pointer hover:h-10 transition-all duration-300  " animationData={ImageIcon} loop={true} />
+                                    <p className=" text-slate-200 mx-auto">upload image</p>
+                                </button>
+                                <p>or</p>
+                                <button className=" w-fit flex flex-col gap-3">
+                                    <Lottie onClick={()=>ClickProfilePostInputTag('video')} data-tip="upload video" className=" tooltip h-8 cursor-pointer mx-auto hover:h-10 transition-all duration-300  " animationData={videoIcon} loop={true} />
+                                    <p className=" text-slate-200 mx-auto">upload video</p>
+                                </button>
+                            </div>
+                            <div className="flex flex-col justify-start text-center gap-3 w-full min-w-full" >
+                                <p>or</p>
+                                <button onClick={()=>ToogleProfilePostUploadAI()} className=" w-fit mx-auto flex flex-col gap-3">
+                                    <Lottie   data-tip="upload image" className=" tooltip h-8 mx-auto cursor-pointer hover:h-10 transition-all duration-300  " animationData={ImageIcon} loop={true} />
+                                    <p className=" text-slate-200 mx-auto">Use AI Image</p>
+                                </button>
+                            </div>
                             
                         </div>  
                         <span className={` ${ProfilePostUpload.file != null ? 'inline' : 'hidden'} text-center mt-3 text-slate-700 dark:text-slate-300 w-fit mx-auto `} > <p className=" inline text-sm text-slate-100 dark:text-slate-800 " >{ProfilePostUpload.Name}</p> Uploaded {ProfilePostUpload.type} file</span>
@@ -791,7 +649,6 @@ const TTT_AI = (props, {UpdateProfile,FetchUserProfile,UploadProfileFile}) => {
                                                    
                         </div>
                     </div>
-                    
                     {/* back,next steps */}
                     <div className=" w-full mt-auto mb-3 max-w-[400px] mx-auto flex flex-row justify-around" >
                         <button onClick={()=> StepsFunc('back')}  data-tip="Back" className= {`tooltip  w-fit mx-auto bg-transparent  rounded-sm py-2 px-4 text-sm font-[PoppinsN] text-slate-950 dark:hover:border-transparent hover:border-transparent border-[1px] hover:text-slate-50 dark:hover:text-slate-50 cursor-pointer z-30 dark:hover:bg-sky-700 hover:bg-sky-700 transition-all duration-500 dark:text-slate-300 my-auto border-slate-300  dark:border-slate-400 `}  >Back</button>
@@ -799,67 +656,64 @@ const TTT_AI = (props, {UpdateProfile,FetchUserProfile,UploadProfileFile}) => {
                     </div>        
                 </div>                
             </div>
-            <section className={` ${ ShowChatComponent== true ? 'md:w-[90%] ' : ' md:w-full'}  ${ ShowChatComponent== true?'justify-between' : ''} flex flex-col relative overflow-x-hidden overflow-y-visible w-full rounded-sm  md:mx-auto bg-transparent dark:text-slate-100 mb-auto   h-full`}>
+            {/*media galary displayer */}
+            <div className={` ${MediaGallary.show ? 'fixed flex flex-row' : 'hidden'}  z-50 w-full pt-2 cursor-not-allowed bg-slate-700 min-h-full  bg-opacity-60 `} >
+                <div className={` flex flex-col px-2 py-4 w-fit max-w-[95%] xl:max-w-[70vw] justify-start mx-auto cursor-pointer bg-slate-800 bg-opacity-70 border-slate-500 border-[1px] h-fit min-h-fit max-h-[80vh]  sm:w-[90%] rounded-md pt-2  `} >
+                    <button onClick={() => CloseMediaGallary('close')} data-tip='close' className=" tooltip tooltip-bottom my-auto ml-auto mr-2 mt-1 w-fit " >
+                        <MdOutlineAdd className={`rotate-45 cursor-pointer text-lg xs:text-2xl  text-slate-600  dark:text-slate-400 hover:text-slate-950 dark:hover:text-slate-200 z-30 transition-all duration-30  lg:text-2xl `} />
+                    </button>
+                    {/* container for image */}
+                    <div className={` ${MediaGallary.type == 'image' ? '' : 'hidden'} m-auto w-full min-w-full h-full min-h-fit `} >
+                        <img loading="lazy"
+                            className= {` ${MediaGallary.type == 'image' ? 'mask-square h-fit m-auto max-h-[500px] min-h-fit rounded-b-md ' : ' hidden'} `}
+                            src={MediaGallary.src} 
+                        />
+                    </div>
+                </div>
+            </div>
+            <section className={` ${ ShowChatComponent== true ? 'md:w-[90%] ' : ' md:w-full'}  ${ ShowChatComponent== true?'justify-between' : ' justify-start'} flex flex-col relative overflow-x-hidden overflow-y-visible w-full rounded-sm  md:mx-auto bg-transparent dark:text-slate-100 mb-auto   h-full`}>
                 {/* header */}
                 <div className=" bg-transparent top-0 sticky z-40  min-h-[40px] flex flex-row justify-start ml-4 py-3 w-full  max-h-[250px] " >
                     
                     <div className="dropdown dropdown-hover dropdown-bottom  z-40 ">
-                        <div tabIndex={0} role="button" className="px-5 py-3 my-3 group rounded-lg text-sm text-center shadow-[0px_0px_8px_1px_rgba(0,0,0,0.25)]  dark:text-slate-400 dark:shadow-slate-500 shadow-slate-500 hover:shadow-slate-900 text-slate-700 transition-all duration-300 hover:dark:shadow-slate-400 cursor-pointer w-fit flex flex-row align-middle gap-3 ">Agri-AI 
+                        <div tabIndex={0} role="button" className="px-5 py-3 my-3 group rounded-lg text-sm text-center shadow-[0px_0px_8px_1px_rgba(0,0,0,0.25)]  dark:text-slate-400 dark:shadow-slate-500 shadow-slate-500 hover:shadow-slate-900 text-slate-700 transition-all duration-300 hover:dark:shadow-slate-400 cursor-pointer w-fit flex flex-row align-middle gap-3 ">Image-AI 
                             <FaAngleDown className=" group-hover:rotate-180 transition-all my-auto  duration-500" /> 
                         </div>
                         <ul tabIndex={0} className="dropdown-content z-40 font-[PoppinsN] gap-3 dark:bg-slate-500 p-0 rounded-md  menu dark:text-slate-100 text-slate-950 bg-slate-400 w-[100px]  xs:w-[150px] shadow">
-                            <li onClick={()=> FuncToogleChats('NewChat')} className=" rounded-none  hover:text-slate-900 hover:bg-slate-500 dark:hover:bg-slate-800 text-sm font-sans dark:hover:text-slate-100 " ><p   >New Chat</p></li>
                             <li onClick={()=> FuncToogleChats('CloseChat')} className=" hover:text-slate-900 hover:bg-slate-500 dark:hover:bg-slate-800 text-sm font-sans dark:hover:text-slate-100 " ><p >Close Chat</p></li>
                         </ul>
                     </div>
                 </div>
-                
             
                 {/* title */}
-                <big className= {` ${ ShowChatComponent== false?'flex flex-col' : 'hidden'} font-[PoppinsN] text-2xl xs:text-3xl md:text-4xl lg:text-5xl xl:text-6xl text-slate-500 dark:text-slate-400 text-center my-6 `} >How can I assist you ?</big>
-                {/* carousels */}
-                <div className= {` ${ ShowChatComponent== false?'flex flex-col' : 'hidden'} mb-auto  min-h-fit overflow-hidden w-[90%] mx-auto justify-center h-[550px] md:max-h-[550px] mt-5 xs:max-w-[350px] md:w-[100%] md:max-w-[850px] gap-3 `} >
-                    <div style={{transform: `translateX(${ScrollCards})`}} className= {` flex flex-row transition-all duration-500 ease-out overflow-visible w-full   mx-auto `} >
-                        {MapCarousels}
-                    </div>
-                    <div className="flex flex-row overflow-visible max-w-[500px] w-full justify-around md:mt-5 mx-auto" >
-                        <FiCornerDownLeft onClick={() =>ScrollCardFunc('back')} className=" text-xl dark:text-slate-400 cursor-pointer hover:text-sky-500 dark:hover:text-sky-500 text-slate-600 " />
-                        <FiCornerDownRight onClick={() =>ScrollCardFunc('next')} className=" text-xl dark:text-slate-400 cursor-pointer hover:text-sky-500 dark:hover:text-sky-500 text-slate-600 " />
-                    </div>                
-
-                </div>
+                <big className= {` ${ ShowChatComponent== false?'flex flex-col' : 'hidden'} font-[PoppinsN] text-2xl xs:text-3xl md:text-4xl lg:text-5xl xl:text-6xl text-slate-500 dark:text-slate-400 text-center my-6 `} >Visualize imagination.</big>
+                
                 {/* chat message */}
                 <div ref={ChatLogRef} className={` z-20 bg-transparent flex flex-col overflow-y-auto overflow-x-hidden w-full gap-1 h-[84%] max-h-[640px] sm:max-h-[650px] ${ ShowChatComponent== true?'flex flex-col' : 'hidden'}  `} >
                     {MapChatMesseger}
                     <span  data-tip="Loading"  className= {` ${IsLoading ? 'loading loading-dots' : ' invisible'} transition-all duration-200 sticky top-0 tooltip cursor-pointer mx-auto my-2 bg-slate-600  loading-md `}></span>
                 </div>
                 {/* chat component */}
-                <div className="mt-auto h-fit xl:max-w-[900px] border-[1px] dark:border-slate-700 border-slate-400 transition-all duration-500 lg:rounded-md w-[95%] xs:max-w-[300px] sm:max-w-[400px] lg:max-w-[80%] focus-within:max-w-[600px] lg:focus-within:max-w-[90%] mx-auto rounded-xl z-30 overflow-hidden bottom-0  sm:relative sm:mx-auto  py-3 px-3 flex flex-row  align-middle bg-transparent " >
+                <div className={`mt-auto h-fit shadow-[0px_0px_2px_0px_rgba(0,0,0,0.25)]  shadow-slate-500 dark:shadow-slate-500 xl:max-w-[900px] transition-all duration-500 lg:rounded-md w-[95%] xs:max-w-[300px] sm:max-w-[400px] lg:max-w-[80%] focus-within:max-w-[600px] lg:focus-within:max-w-[90%] mx-auto rounded-xl z-30 overflow-hidden bottom-0  sm:relative sm:mx-auto  py-3 px-3 flex flex-row  align-middle bg-transparent `} >
                         <textarea  
                             theme="snow" 
-                            modules= {{
-                                toolbar: false    // Snow includes toolbar by default
-                            }}
-                            className={`bg-transparent max-h-[120px] resize-y outline-none text-slate-950   dark:text-slate-200 ring-1 dark:ring-slate-600 ring-slate-500 transition-all duration-300 focus-within:ring-1 dark:focus-within:ring-slate-500 focus-within:ring-slate-600 border-none placeholder:text-slate-700 dark:placeholder:text-slate-400 focus:outline-transparent rounded-xl focus:border-transparent textarea ${UserPromptAi == false ? ' w-full' : 'w-[90%]'}  min-h-fit  h-[70px] overflow-y-auto`}  
+                            className={`bg-transparent shadow-slate-500 dark:shadow-slate-600 shadow-[0px_0px_5px_1px_rgba(0,0,0,0.25)] border-0 border-transparent max-h-[120px] resize-y outline-none text-slate-950   dark:text-slate-200 transition-all duration-300 dark:focus-within:shadow-slate-500 focus-within:shadow-slate-500 border-none placeholder:text-slate-700 dark:placeholder:text-slate-400 focus:outline-transparent rounded-xl focus:border-transparent textarea ${UserPromptAi == false ? ' w-full' : 'w-[90%]'}  min-h-fit  h-[70px] overflow-y-auto`}  
                             {...register('AIprompt',{required : false})}
                             placeholder={'Messege AI'} 
                         ></textarea>
-                        <button data-tip='Please wait' className={` mt-auto mx-auto ${IsLoading ? ' opacity-30' : 'opacity-100'} `} disabled={IsLoading} >
-                            <IoMdSend onClick={() => SendPrompt(null)}  className= {` ${IsLoading ? ' invisible' : 'visible'}  cursor-pointer ${UserPromptAi == false ? ' translate-x-[1000px] w-0' : 'translate-x-0'} hover:text-lime-400 dark:hover:text-lime-600  transition-all duration-300 text-2xl text-slate-900 dark:text-sky-600 sm:mx-auto `} />
+                        <button data-tip='Please wait' className={` mt-auto mx-auto ${IsLoading ? ' opacity-30' : 'opacity-100'} `} disabled={IsLoading | watch('AIprompt') == ''} >
+                            <IoMdSend onClick={SendPrompt}  className= {` ${IsLoading ? ' invisible' : 'visible'}  cursor-pointer ${UserPromptAi == false ? ' translate-x-[1000px] w-0' : 'translate-x-2'} hover:text-lime-400 dark:hover:text-lime-600  transition-all duration-300 text-2xl text-slate-900 dark:text-sky-600 sm:mx-auto `} />
                         </button>
                         
                 </div>
-                <small className=" text-slate-600 dark:text-slate-500 pb-1 text-center" >AI can make mistakes, please double-check it</small>
+                <small className={` ${chatLogData.length == 0 ? ' mb-auto' : ' mb-0' } text-slate-600 dark:text-slate-500 pb-1 text-center `} >AI can make mistakes, please double-check it</small>
             </section>
         </div>
     )
-   
-
-
 };
 
 const mapStateToProps =  state => ({
     isAuthenticated:state.auth.isAuthenticated,
     
 })    
-export default connect(mapStateToProps,{UpdateProfile,FetchUserProfile,UploadProfileFile})(TTT_AI)
+export default connect(mapStateToProps,{FetchUserProfile,UploadProfileFile})(TTI_AI)

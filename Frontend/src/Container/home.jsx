@@ -25,7 +25,8 @@ import { MdOutlineLogout } from "react-icons/md";
 import { MdLogin } from "react-icons/md";
 import { PageToogleReducer, SelectedPageReducer, ShowLoginContainerReducer, ToogleTheme } from "../actions/types.jsx";
 import Chat from "./chat.jsx";
-import AIPage from './AI.jsx'
+import TTT_AI from './AI.jsx'
+import TTI_AI from "./TTI.jsx";
 import Login from "./login.jsx";
 import Notifier from "../Components/notifier.jsx";
 import ProfileJSX from './Profile.jsx'
@@ -37,10 +38,6 @@ const Home = (props, {logout,FetchLogout ,isAuthenticated,load_user,UploadFile,}
     const dispatch = useDispatch()
     const db = useSelector((state) => state.auth.user)
     const UserRefreshToken = useSelector((state) => state.auth.refresh)
-   
-    const HmEvent  = useSelector((state) => state.auth.notifierType)
-    const [getUser,setGetUser] = useState(true)
-    const TokensVal = db ? db.TokenRemaining : '0'
     const [Upload,SetUpload] = useState({
         file : null,
         filename : ''
@@ -52,8 +49,7 @@ const Home = (props, {logout,FetchLogout ,isAuthenticated,load_user,UploadFile,}
     const User = useSelector((state)=> state.auth.user)
     const Email = User != null ? User.email : 'null'
     const UserID = User != null ? User.id : 'd5802e33-d46d-4bbb-bccb-32fe4f1446bc' // this is the id for gest user
-    const [ShowSideNav,SetShowSideNav] = useState(useSelector((state) => state.auth.Navbar))
-    var Navbarval  =  useSelector((state) => state.auth.Navbar)
+    const [AiPageSelected,SetAiPageSelected] = useState('TextToText')
     const [Homeauthorized,setHomeauthorized] = useState(true)
     const [Page,SetPage] = useState('AI')
     const SelectedPage = useSelector((state) => state.ProfileReducer.SelectedPage)
@@ -111,21 +107,11 @@ const Home = (props, {logout,FetchLogout ,isAuthenticated,load_user,UploadFile,}
     },[User])
     
     useEffect(() => {
-        if(window.screen.width >= 640) {
-            SetShowSideNav(true)
-          }else {
-            SetShowSideNav(Navbarval)
-          }
-       
-    },[Navbarval])
-   
- 
-    useEffect(() => {
         if(UserRefreshToken){
             props.CheckAuthenticated();
             props.load_user();
             setHomeauthorized(true)
-            setGetUser(false) 
+            
         }
         
     },[UserRefreshToken])
@@ -150,32 +136,6 @@ const Home = (props, {logout,FetchLogout ,isAuthenticated,load_user,UploadFile,}
             SetTheme(val)
         }
     }
-    window.addEventListener('resize', function() {
-    if(this.screen.width >= 640) {
-        SetShowSideNav(true)
-    }else {
-        SetShowSideNav(false)
-    }
-    })
-
-    window.addEventListener('loadeddata', function () {
-    if(screen.width >= 640) {
-        SetShowSideNav(true)
-        
-    }else {
-        SetShowSideNav(false)
-    }
-    })
-    useEffect(  () => {
-    if(screen.width >= 640) {
-        SetShowSideNav(true)
-    }else {
-        SetShowSideNav(false)
-    }
-    },[])
-
-   
-   
     // if(localStorage.getItem('access') == null /*|| db == null*/) {
     // //console.log('not found')
     // logout;
@@ -248,9 +208,9 @@ const Home = (props, {logout,FetchLogout ,isAuthenticated,load_user,UploadFile,}
     }
  
     return (
-        <div className={`w-full drawer lg:drawer-open   md:h-screen h-full ${Theme} selection:bg-black selection:text-white selection:font-bold selection:p-1 dark:selection:bg-white dark:selection:text-black `} >
+        <div className={`w-full drawer lg:drawer-open   md:h-screen h-full ${Theme} selection:bg-black selection:text-white selection:font-bold selection:p-1 dark:selection:bg-white  dark:selection:text-black `} >
             <input id="my-drawer-3" type="checkbox" className="drawer-toggle" />
-                <div className="drawer-content bg-transparent overflow-auto  flex flex-col">
+                <div className="drawer-content bg-slate-300 z-40 dark:bg-slate-900 overflow-auto  flex flex-col">
                     <div className="navbar z-30 px-0 bg-slate-300 dark:bg-slate-900 border-b-[1px] border-b-slate-500 dark:border-b-slate-600 transition-all duration-300 text-slate-50  w-full">
                         <div className="flex-none pl-2 lg:hidden ">
                             <label htmlFor="my-drawer-3" aria-label="open sidebar" className="btn btn-square btn-ghost">
@@ -268,7 +228,17 @@ const Home = (props, {logout,FetchLogout ,isAuthenticated,load_user,UploadFile,}
                          <Notifier />
                         <div className={` ${(db == null || db == 'null') && ShowLoginContainer ? 'block' : 'hidden'} h-fit w-fit absolute  z-50 ml-3 md:ml-8 md:translate-x-[50%] md:mt-8 lg:ml-[22%]  min-h-[300px] max-h-[500px] min-w-[300px] `} ><Login /></div>
                         {Page == 'AI' ? 
-                            <AIPage className='z-30' /> :
+                            <div className=" h-full min-h-screen w-full min-w-full bg-transparent " >
+                                <div className=" w-full min-w-full h-fit flex flex-row bg-transparent justify-start gap-4 px-3 " >
+                                    <p onClick={()=> SetAiPageSelected('TextToText')} className={` ${AiPageSelected == 'TextToText' ? ' dark:text-lime-600 text-sky-600 shadow-sky-800 dark:shadow-lime-700 ' : 'text-slate-700  dark:text-slate-400 shadow-slate-500 dark:shadow-slate-500'} px-4 py-2 my-3 rounded-2xl text-sm text-center shadow-[0px_0px_8px_1px_rgba(0,0,0,0.25)]  hover:shadow-slate-900  transition-all duration-300 hover:dark:shadow-slate-400 cursor-pointer w-fit `}>Text to Text</p>
+                                    <p onClick={()=> SetAiPageSelected('TextToImage')} className={` ${AiPageSelected == 'TextToImage' ? ' dark:text-lime-600 text-sky-600 shadow-sky-800 dark:shadow-lime-700 ' : 'text-slate-700  dark:text-slate-400 shadow-slate-500 dark:shadow-slate-500'} px-4 py-2 my-3 rounded-2xl text-sm text-center shadow-[0px_0px_8px_1px_rgba(0,0,0,0.25)]  hover:shadow-slate-900  transition-all duration-300 hover:dark:shadow-slate-400 cursor-pointer w-fit `}>Text to Image</p>
+                                </div>
+                                {
+                                    AiPageSelected == 'TextToText' ? <TTT_AI className='z-30' />  : <TTI_AI className='z-30' />
+                                }
+                                
+                            </div>
+                            :
                         Page == 'messeger' ? 
                             <Chat  className='z-30' /> :
                         Page == 'profile' ? 

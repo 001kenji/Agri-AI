@@ -1,7 +1,7 @@
 # chat/consumers.py
-import json,threading,datetime
+import json,threading,datetime,aiohttp
 from django.core.files.storage import FileSystemStorage
-import time,os,shutil, asyncio
+import time,os,shutil, asyncio,base64
 from django.conf import settings, Settings
 from markdown import markdown
 from asgiref.sync import sync_to_async,async_to_sync
@@ -1601,7 +1601,7 @@ def RequestAICarouselsFunc(UserEmail):
             accountref = Account.objects.filter(email = UserEmail)
             isaccount = accountref.exists()
             if not isaccount:
-                responseval = {'type' : 'error','result' : 'Sign Up to manage chats'}
+                responseval = {'type' : 'error','result' : 'Create an account to manage this feutures'}
                 return responseval
             val = AiPageCarousels.objects.all()
             serialized = AiPageCarouselsSerializer(val,many=True)
@@ -1615,6 +1615,49 @@ def RequestAICarouselsFunc(UserEmail):
         reponseval = {'type' : 'error','status' : 'error','result' : 'invalid data'}
         return reponseval
 #print(settings.AI_MODEL)
+COLAB_API_URL = 'https://745d-35-247-188-148.ngrok-free.app' # os.environ.get("COLAB_API_URL")
+API_KEY = os.environ.get("COLAB_API_KEY")
+
+async def RequestTextToImageAIFunc(UserEmail, prompt):
+    try:
+        if not prompt or prompt.lower() == "null":
+            return {"type": "warning", "result": "Your prompt is empty, please provide one."}
+
+        # Check if account exists (assuming Django ORM)
+        account_exists = await sync_to_async(Account.objects.filter(email=UserEmail).exists)()
+        if not account_exists:
+            return {"type": "warning", "result": "Create an account to use this AI"}
+
+        # Prepare request payload
+        payload = json.dumps({"prompt": prompt})
+        headers = {"Content-Type": "application/json"}
+
+        print("Calling request from Colab API...\n",f"{COLAB_API_URL}/generate/")
+
+        # Use aiohttp for async requests
+        async with aiohttp.ClientSession() as session:
+            async with session.post(f"https://745d-35-247-188-148.ngrok-free.app/generate/", data=payload, headers=headers) as response:
+                print(f"Request to Colab completed with status {response.status}\n")
+
+                if response.status == 200:
+                    # Convert the image response to Base64
+                    image_data = await response.read()
+                    image_base64 = base64.b64encode(image_data).decode("utf-8")
+
+                    response_body = {
+                        "text": "",
+                        "email": "AI",
+                        "ImageBlob": image_base64,
+                        "img": f"{os.environ.get('HostPath')}/media/AI.webp",
+                    }
+                    return {"type": "success", "result": response_body}
+
+                else:
+                    return {"type": "warning", "result": f"Failed to generate image: {response.status}"}
+
+    except Exception as e:
+        print(f"Error: {e}")
+        return {"type": "warning", "result": "We're currently experiencing maintenance. Sorry for the inconvenience."}
 
 
 @circuit
@@ -1677,7 +1720,6 @@ class AIConsumer(AsyncWebsocketConsumer):
         if(message == 'RequestAIResponse'):
                 email = sanitize_string(text_data_json['email'])
                 prompt = sanitize_string(text_data_json['prompt'])     
-                
                 # Track the task
                 task = asyncio.create_task(self.handle_request_ai_response(prompt, email))
                 self.tasks.add(task)
@@ -1691,7 +1733,19 @@ class AIConsumer(AsyncWebsocketConsumer):
                 task = asyncio.create_task(self.handle_request_ai_carousels(UserEmail))
                 self.tasks.add(task)
                 task.add_done_callback(self.tasks.discard)
-                # await self.send_msg(data=val,type='RequestAICarousels')       
+                # await self.send_msg(data=val,type='RequestAICarousels')  
+        elif (message == 'RequestTextToImageAI'):
+                email = sanitize_string(text_data_json['Email'])
+                if email != 'null' and email != 'gestuser@gmail.com' and email != '' :
+                    prompt = sanitize_string(text_data_json['prompt'])
+                    # Track the task
+                    task = asyncio.create_task(self.handle_request_text_to_image_ai(prompt, email))
+                    self.tasks.add(task)
+                    task.add_done_callback(self.tasks.discard)
+                    
+                else:
+                    val = {'status' : 'warning','message' : 'Create an account to use this AI'}
+                    await self.send_msg(data=val,type='RequestTextToImageAI')    
 
     async def handle_request_ai_response(self, prompt, email):
         val = await RequestAIResponseFunc(prompt=prompt, email=email)
@@ -1700,6 +1754,11 @@ class AIConsumer(AsyncWebsocketConsumer):
     async def handle_request_ai_carousels(self, UserEmail):
         val = await RequestAICarouselsFunc(UserEmail=UserEmail)
         await self.send_msg(data=val, type='RequestAICarousels')
+    
+    async def handle_request_text_to_image_ai(self,prompt,email):
+        
+        val = await RequestTextToImageAIFunc(UserEmail=email,prompt=prompt)        
+        await self.send_msg(data=val,type='RequestTextToImageAI')
 
 
 class ChatConsumer(AsyncWebsocketConsumer):

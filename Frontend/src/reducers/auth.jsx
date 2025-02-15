@@ -26,9 +26,6 @@ FAIL_EVENT,
 NOTIFIER_STATUS,
 INTERCEPTER,
 ToogleTheme,
-FindJobsReducer,
-JobHistoryReducer,
-MyJobsReducer,
 ShowLoginContainerReducer,
 PageToogleReducer,
 }from '../actions/types'
@@ -40,7 +37,6 @@ const initialState = {
     access:  localStorage.getItem('access'),
     refresh: localStorage.getItem('refresh'),
     isAuthenticated:null,
-    isManager : false,
     user : null,
     Expire : null,
     notifierType : 'null',
@@ -48,11 +44,6 @@ const initialState = {
     nofifierStatus :true,
     Theme : 'dark',
     Page : '',
-    FindJobs : [],
-    MyJobs : [],
-    JobHistory : [],
-    MyHouses : [],
-    HouseList : [],
     ShowLoginContainer : true
 
 };
@@ -103,7 +94,6 @@ export default function (state = initialState, action) {
             return {
                 ...state,
                 user: payload,
-                isManager : payload.is_staff
             }
         
         case AUTHENTICATED_SUCCESS :
@@ -256,21 +246,6 @@ export default function (state = initialState, action) {
                 ...state,
                 notifierType : state.notifierType == 'LOADING' ? 'LOADING' :'INTERCEPT',
                 notifierMessage : state.notifierMessage == 'LOADING' ? 'LOADING' :'null'
-            }
-        case FindJobsReducer:
-            return {
-                ...state,
-                FindJobs : payload
-            }
-        case JobHistoryReducer:
-            return {
-                ...state,
-                JobHistory : payload
-            }
-        case MyJobsReducer:
-            return {
-                ...state,
-                MyJobs : payload
             }
         case PageToogleReducer:
             return {

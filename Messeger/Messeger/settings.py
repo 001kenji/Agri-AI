@@ -260,6 +260,7 @@ REST_FRAMEWORK = {
     'DEFAULT_THROTTLE_RATES': {
         'anon': '10/minutes',
         'user': '30/minutes',
+        'ai' : '5/min',
         'csrf': '100/min',
         'DataThrottler' : '50/min',
         'fileUpload' : '5/min',

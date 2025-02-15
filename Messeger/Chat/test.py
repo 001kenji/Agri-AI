@@ -1,6 +1,15 @@
-from django.test import TestCase
+import requests
+import json
 
+url = "https://4f61-35-230-37-10.ngrok-free.app/generate/"
 
-x = [1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,1,2,3,4,5,6,7,8,9,]
-result = x[:10][-2:]
-print(result)
+payload = json.dumps({
+  "prompt": "green car"
+})
+headers = {
+  'Content-Type': 'application/json'
+}
+
+response = requests.request("POST", url, headers=headers, data=payload)
+
+print(response.text)

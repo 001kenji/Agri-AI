@@ -50,3 +50,7 @@ export const FolderListReducer = 'FolderListReducer'
 export const FileListReducer = 'FileListReducer'
 export const ProfileAccountReducer = 'ProfileAccountReducer'
 export const SelectedPageReducer = 'SelectedPageReducer'
+
+
+// AI types
+export const AiImageReducer = 'AiImageReducer'
